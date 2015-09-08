@@ -42,7 +42,7 @@ const STACKED_PANEL_CLASS = 'p-StackedPanel';
  * The arguments object emitted with various [[StackedPanel]] signals.
  */
 export
-interface IWidgetArgs {
+interface IWidgetIndexArgs {
   /**
    * The index associated with the widget.
    */
@@ -65,14 +65,14 @@ class StackedPanel extends Widget {
    *
    * **See also:** [[currentChanged]]
    */
-  static currentChangedSignal = new Signal<StackedPanel, IWidgetArgs>();
+  static currentChangedSignal = new Signal<StackedPanel, IWidgetIndexArgs>();
 
   /**
    * A signal emitted when a widget is removed from the panel.
    *
    * **See also:** [[widgetRemoved]]
    */
-  static widgetRemovedSignal = new Signal<StackedPanel, IWidgetArgs>();
+  static widgetRemovedSignal = new Signal<StackedPanel, IWidgetIndexArgs>();
 
   /**
    * The property descriptor for the current widget.
@@ -109,7 +109,7 @@ class StackedPanel extends Widget {
    * #### Notes
    * This is a pure delegate to the [[currentChangedSignal]].
    */
-  get currentChanged(): ISignal<StackedPanel, IWidgetArgs> {
+  get currentChanged(): ISignal<StackedPanel, IWidgetIndexArgs> {
     return StackedPanel.currentChangedSignal.bind(this);
   }
 
@@ -119,7 +119,7 @@ class StackedPanel extends Widget {
    * #### Notes
    * This is a pure delegate to the [[widgetRemovedSignal]].
    */
-  get widgetRemoved(): ISignal<StackedPanel, IWidgetArgs> {
+  get widgetRemoved(): ISignal<StackedPanel, IWidgetIndexArgs> {
     return StackedPanel.widgetRemovedSignal.bind(this);
   }
 
