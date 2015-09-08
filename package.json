@@ -1,0 +1,72 @@
+{
+  "name": "phosphor-stackedpanel",
+  "version": "0.9.0",
+  "description": "A Phosphor layout widget where only one child is visible at a time.",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "^11.0.1",
+    "browserify-css": "^0.6.1",
+    "browserify-istanbul": "^0.2.1",
+    "coveralls": "^2.11.4",
+    "expect.js": "^0.3.1",
+    "glob-copy": "^0.1.0",
+    "karma": "^0.13.9",
+    "karma-browserify": "^4.3.0",
+    "karma-chrome-launcher": "^0.2.0",
+    "karma-coverage": "^0.5.0",
+    "karma-firefox-launcher": "^0.1.6",
+    "karma-ie-launcher": "^0.2.0",
+    "karma-mocha": "^0.2.0",
+    "karma-mocha-reporter": "^1.1.1",
+    "mocha": "^2.2.5",
+    "rimraf": "^2.4.2",
+    "typedoc": "git://github.com/phosphorjs/typedoc.git",
+    "typescript": "1.6.0-beta"
+  },
+  "scripts": {
+    "clean": "rimraf lib && rimraf test/build && rimraf test/coverage",
+    "clean:example": "rimraf example/*.js",
+    "build:src": "tsc --project src",
+    "build:test": "tsc --project test/src",
+    "build:css": "node scripts/copycss.js",
+    "build:example": "tsc --project example && browserify -g browserify-css example/index.js -o example/bundle.js",
+    "build": "npm run build:src && npm run build:test && npm run build:css",
+    "docs": "rimraf docs/api && typedoc --options scripts/tdoptions.json",
+    "postinstall": "npm dedupe",
+    "prepublish": "npm run build",
+    "test:chrome": "karma start --browsers=Chrome test/karma.conf.js",
+    "test:coverage": "karma start test/karma-cov.conf.js",
+    "test:firefox": "karma start --browsers=Firefox test/karma.conf.js",
+    "test:ie": "karma start --browsers=IE test/karma.conf.js",
+    "test": "npm run test:firefox"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phosphorjs/phosphor-stackedpanel.git"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.css",
+    "lib/index.d.ts"
+  ],
+  "keywords": [
+    "ui",
+    "panel",
+    "stack",
+    "stacked",
+    "stackpanel",
+    "stackedpanel",
+    "stackwidget",
+    "stackedwidget",
+    "widget",
+    "widgets"
+  ],
+  "author": "S. Chris Colbert <sccolbert@gmail.com>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/phosphorjs/phosphor-stackedpanel/issues"
+  },
+  "homepage": "https://github.com/phosphorjs/phosphor-stackedpanel"
+}
