@@ -277,25 +277,17 @@ class StackedPanel extends Widget {
     if (old) old.hidden = true;
     if (val) val.hidden = false;
     this._item = val ? new StackItem(val) : null;
-    // IE repaints before raf fires which cause jitter, so layout
-    // immediately on IE. It's a bit of extra work, but no jitter.
-    if (isIE) {
-      sendMessage(this, MSG_LAYOUT_REQUEST);
-    } else {
-      postMessage(this, MSG_LAYOUT_REQUEST);
-    }
+    // Ideally, the layout request would be posted in order to take
+    // advantage of message compression, but some browsers repaint
+    // before the message gets processed, resulting in jitter. So,
+    // the layout request is sent and processed immediately.
+    sendMessage(this, MSG_LAYOUT_REQUEST);
     this.currentChanged.emit({ index: this.childIndex(val), widget: val });
   }
 
   private _box: IBoxSizing = null;
   private _item: StackItem = null;
 }
-
-
-/**
- * A simple test for IE.
- */
-var isIE = navigator.userAgent.indexOf('Trident') > 0;
 
 
 /**
