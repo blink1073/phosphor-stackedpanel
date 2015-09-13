@@ -8,10 +8,6 @@
 'use strict';
 
 import {
-  IBoxSizing, boxSizing, sizeLimits
-} from 'phosphor-domutil';
-
-import {
   Message, postMessage, sendMessage
 } from 'phosphor-messaging';
 
@@ -25,8 +21,7 @@ import {
 
 import {
   ChildMessage, MSG_AFTER_ATTACH, MSG_BEFORE_DETACH, MSG_LAYOUT_REQUEST,
-  ResizeMessage, Widget, clearLayoutGeometry, getLayoutGeometry,
-  setLayoutGeometry
+  ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import './index.css';
@@ -152,7 +147,7 @@ class StackedPanel extends Widget {
     if (msg.child === this.currentWidget) this.currentWidget = null;
     if (this.isAttached) sendMessage(msg.child, MSG_BEFORE_DETACH);
     this.node.removeChild(msg.child.node);
-    clearLayoutGeometry(msg.child);
+    msg.child.clearOffsetGeometry();
     this.widgetRemoved.emit({ index: msg.previousIndex, widget: msg.child });
   }
 
@@ -180,14 +175,12 @@ class StackedPanel extends Widget {
    */
   protected onResize(msg: ResizeMessage): void {
     if (this.isVisible) {
-      var width = msg.width;
-      var height = msg.height;
-      if (width < 0 || height < 0) {
-        var geo = getLayoutGeometry(this);
-        if (width < 0) width = geo ? geo.width : this.node.offsetWidth;
-        if (height < 0) height = geo ? geo.height : this.node.offsetHeight;
+      if (msg.width < 0 || msg.height < 0) {
+        var rect = this.offsetRect;
+        this._layoutChildren(rect.width, rect.height);
+      } else {
+        this._layoutChildren(msg.width, msg.height);
       }
-      this._layoutChildren(width, height);
     }
   }
 
@@ -196,10 +189,8 @@ class StackedPanel extends Widget {
    */
   protected onUpdateRequest(msg: Message): void {
     if (this.isVisible) {
-      var geo = getLayoutGeometry(this);
-      var width = geo ? geo.width : this.node.offsetWidth;
-      var height = geo ? geo.height : this.node.offsetHeight;
-      this._layoutChildren(width, height);
+      var rect = this.offsetRect;
+      this._layoutChildren(rect.width, rect.height);
     }
   }
 
@@ -223,7 +214,7 @@ class StackedPanel extends Widget {
     var maxH = Infinity;
     var widget = this.currentWidget
     if (widget) {
-      var limits = sizeLimits(widget.node);
+      var limits = widget.sizeLimits;
       minW = limits.minWidth;
       minH = limits.minHeight;
       maxW = limits.maxWidth;
@@ -231,18 +222,14 @@ class StackedPanel extends Widget {
     }
 
     // Add the box sizing to the size constraints.
-    var box = this._box = boxSizing(this.node);
+    var box = this.boxSizing;
     minW += box.horizontalSum;
     minH += box.verticalSum;
     maxW += box.horizontalSum;
     maxH += box.verticalSum;
 
-    // Update the inline style size constraints.
-    var style = this.node.style;
-    style.minWidth = minW + 'px';
-    style.minHeight = minH + 'px';
-    style.maxWidth = maxW < Infinity ? maxW + 'px' : '';
-    style.maxHeight = maxH < Infinity ? maxH + 'px' : '';
+    // Update the panel's size constraints.
+    this.setSizeLimits(minW, minH, maxW, maxH);
 
     // Notifiy the parent that it should relayout.
     if (this.parent) sendMessage(this.parent, MSG_LAYOUT_REQUEST);
@@ -261,17 +248,15 @@ class StackedPanel extends Widget {
       return;
     }
 
-    // Ensure the box sizing is computed for the panel.
-    var box = this._box || (this._box = boxSizing(this.node));
-
     // Compute the actual layout bounds adjusted for border and padding.
+    var box = this.boxSizing;
     var top = box.paddingTop;
     var left = box.paddingLeft;
     var width = offsetWidth - box.horizontalSum;
     var height = offsetHeight - box.verticalSum;
 
     // Update the current widget's layout geometry.
-    setLayoutGeometry(widget, left, top, width, height);
+    widget.setOffsetGeometry(left, top, width, height);
   }
 
   /**
@@ -287,6 +272,4 @@ class StackedPanel extends Widget {
     sendMessage(this, MSG_LAYOUT_REQUEST);
     this.currentChanged.emit({ index: this.childIndex(val), widget: val });
   }
-
-  private _box: IBoxSizing = null;
 }
