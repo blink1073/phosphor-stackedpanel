@@ -99,7 +99,7 @@ Follow the package install instructions first.
 
 ```bash
 npm install --save-dev browserify browserify-css
-browserify -g browserify-css myapp.js -o mybundle.js
+browserify myapp.js -o mybundle.js
 ```
 
 
