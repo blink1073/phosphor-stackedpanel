@@ -25,7 +25,8 @@ import {
 
 import {
   ChildMessage, MSG_AFTER_ATTACH, MSG_BEFORE_DETACH, MSG_LAYOUT_REQUEST,
-  ResizeMessage, Widget
+  ResizeMessage, Widget, clearLayoutGeometry, getLayoutGeometry,
+  setLayoutGeometry
 } from 'phosphor-widget';
 
 import './index.css';
@@ -96,14 +97,6 @@ class StackedPanel extends Widget {
   }
 
   /**
-   * Dispose of the resources held by the panel.
-   */
-  dispose(): void {
-    this._item = null;
-    super.dispose();
-  }
-
-  /**
    * A signal emitted when the current widget is changed.
    *
    * #### Notes
@@ -159,6 +152,7 @@ class StackedPanel extends Widget {
     if (msg.child === this.currentWidget) this.currentWidget = null;
     if (this.isAttached) sendMessage(msg.child, MSG_BEFORE_DETACH);
     this.node.removeChild(msg.child.node);
+    clearLayoutGeometry(msg.child);
     this.widgetRemoved.emit({ index: msg.previousIndex, widget: msg.child });
   }
 
@@ -186,9 +180,14 @@ class StackedPanel extends Widget {
    */
   protected onResize(msg: ResizeMessage): void {
     if (this.isVisible) {
-      var width = msg.width < 0 ? this.node.offsetWidth : msg.width;
-      var height = msg.height < 0 ? this.node.offsetHeight : msg.height;
-      this._layoutItems(width, height);
+      var width = msg.width;
+      var height = msg.height;
+      if (width < 0 || height < 0) {
+        var geo = getLayoutGeometry(this);
+        if (width < 0) width = geo ? geo.width : this.node.offsetWidth;
+        if (height < 0) height = geo ? geo.height : this.node.offsetHeight;
+      }
+      this._layoutChildren(width, height);
     }
   }
 
@@ -197,7 +196,10 @@ class StackedPanel extends Widget {
    */
   protected onUpdateRequest(msg: Message): void {
     if (this.isVisible) {
-      this._layoutItems(this.node.offsetWidth, this.node.offsetHeight);
+      var geo = getLayoutGeometry(this);
+      var width = geo ? geo.width : this.node.offsetWidth;
+      var height = geo ? geo.height : this.node.offsetHeight;
+      this._layoutChildren(width, height);
     }
   }
 
@@ -211,7 +213,7 @@ class StackedPanel extends Widget {
   }
 
   /**
-   * Update the stack item and size constraints of the panel.
+   * Update the size constraints of the panel.
    */
   private _setupGeometry(): void {
     // Compute the new size limits.
@@ -219,8 +221,9 @@ class StackedPanel extends Widget {
     var minH = 0;
     var maxW = Infinity;
     var maxH = Infinity;
-    if (this._item) {
-      var limits = sizeLimits(this._item.widget.node);
+    var widget = this.currentWidget
+    if (widget) {
+      var limits = sizeLimits(widget.node);
       minW = limits.minWidth;
       minH = limits.minHeight;
       maxW = limits.maxWidth;
@@ -249,11 +252,12 @@ class StackedPanel extends Widget {
   }
 
   /**
-   * Layout the items using the given offset width and height.
+   * Layout the children using the given offset width and height.
    */
-  private _layoutItems(offsetWidth: number, offsetHeight: number): void {
-    // Bail early if there is no current item.
-    if (!this._item) {
+  private _layoutChildren(offsetWidth: number, offsetHeight: number): void {
+    // Bail early if there is no current widget.
+    var widget = this.currentWidget;
+    if (!widget) {
       return;
     }
 
@@ -266,8 +270,8 @@ class StackedPanel extends Widget {
     var width = offsetWidth - box.horizontalSum;
     var height = offsetHeight - box.verticalSum;
 
-    // Update the current item layout.
-    this._item.layoutWidget(left, top, width, height);
+    // Update the current widget's layout geometry.
+    setLayoutGeometry(widget, left, top, width, height);
   }
 
   /**
@@ -276,7 +280,6 @@ class StackedPanel extends Widget {
   private _onCurrentWidgetChanged(old: Widget, val: Widget): void {
     if (old) old.hidden = true;
     if (val) val.hidden = false;
-    this._item = val ? new StackItem(val) : null;
     // Ideally, the layout request would be posted in order to take
     // advantage of message compression, but some browsers repaint
     // before the message gets processed, resulting in jitter. So,
@@ -286,58 +289,4 @@ class StackedPanel extends Widget {
   }
 
   private _box: IBoxSizing = null;
-  private _item: StackItem = null;
-}
-
-
-/**
- * A class which assists with the layout of a widget.
- */
-class StackItem {
-  /**
-   * Construct a new stack item.
-   */
-  constructor(widget: Widget) {
-    this._widget = widget;
-  }
-
-  /**
-   * Get the widget for the item.
-   */
-  get widget(): Widget {
-    return this._widget;
-  }
-
-  /**
-   * Update the layout geometry for the widget.
-   */
-  layoutWidget(left: number, top: number, width: number, height: number): void {
-    var resized = false;
-    var style = this._widget.node.style;
-    if (left !== this._left) {
-      this._left = left;
-      style.left = left + 'px';
-    }
-    if (top !== this._top) {
-      this._top = top;
-      style.top = top + 'px';
-    }
-    if (width !== this._width) {
-      resized = true;
-      this._width = width;
-      style.width = width + 'px';
-    }
-    if (height !== this._height) {
-      resized = true;
-      this._height = height;
-      style.height = height + 'px';
-    }
-    if (resized) sendMessage(this._widget, new ResizeMessage(width, height));
-  }
-
-  private _widget: Widget;
-  private _top = NaN;
-  private _left = NaN;
-  private _width = NaN;
-  private _height = NaN;
 }

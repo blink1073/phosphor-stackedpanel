@@ -9,7 +9,7 @@
     "phosphor-messaging": "^1.0.3",
     "phosphor-properties": "^1.1.0",
     "phosphor-signaling": "^1.1.0",
-    "phosphor-widget": "^0.9.5"
+    "phosphor-widget": "^0.9.6"
   },
   "devDependencies": {
     "browserify": "^11.0.1",
