@@ -22,7 +22,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  MSG_LAYOUT_REQUEST, MSG_UPDATE_REQUEST, attachWidget, ResizeMessage, Widget
+  MSG_LAYOUT_REQUEST, MSG_UPDATE_REQUEST, ResizeMessage, Widget, attachWidget
 } from 'phosphor-widget';
 
 import {
