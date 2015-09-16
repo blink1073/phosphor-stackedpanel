@@ -26,7 +26,7 @@ import {
 } from 'phosphor-widget';
 
 import {
-  IWidgetIndexArgs, StackedPanel, STACKED_PANEL_CLASS
+  STACKED_PANEL_CLASS, StackedPanel
 } from '../../lib/index';
 
 
