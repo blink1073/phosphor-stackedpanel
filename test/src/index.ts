@@ -235,26 +235,25 @@ describe('phosphor-stackedpanel', () => {
 
     describe('#onAfterShow()', () => {
 
-      it('should be invoked just after the panel is made visible', (done) => {
+      it('should update the panel immediately', () => {
         var panel = new LogPanel();
         attachWidget(panel, document.body);
         panel.hidden = true;
+        panel.messages = [];
         panel.hidden = false;
         expect(panel.messages.indexOf('after-show')).to.not.be(-1);
-        requestAnimationFrame(() => {
-          expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
-          done();
-        });
+        expect(panel.messages.indexOf('update-request')).to.not.be(-1);
       });
 
     });
 
     describe('#onAfterAttach()', () => {
 
-      it('should be invoked just after the panel is attached', (done) => {
+      it('should layout the panel in the future', (done) => {
         var panel = new LogPanel();
         attachWidget(panel, document.body);
         expect(panel.messages.indexOf('after-attach')).to.not.be(-1);
+        expect(panel.messages.indexOf('layout-request')).to.be(-1);
         requestAnimationFrame(() => {
           expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
           done();
@@ -306,20 +305,22 @@ describe('phosphor-stackedpanel', () => {
 
     describe('#onUpdateRequest()', () => {
 
-      it('should be invoked when an update is requested', () => {
+      it('should update the child geometry', () => {
         var panel = new LogPanel();
         var widget = new Widget();
         panel.setOffsetGeometry(10, 10, 110, 115);
         attachWidget(panel, document.body);
         panel.addChild(widget);
-        sendMessage(panel, MSG_LAYOUT_REQUEST);
-        expect(widget.offsetRect.width).to.be(0);
         panel.currentWidget = widget;
         sendMessage(panel, MSG_LAYOUT_REQUEST);
         expect(widget.offsetRect.width).to.be(110);
         expect(widget.offsetRect.height).to.be(115);
-        sendMessage(panel, MSG_UPDATE_REQUEST);
-        expect(panel.messages.indexOf('update-request')).to.not.be(-1);
+        widget.setOffsetGeometry(0, 0, 10, 10);
+        expect(widget.offsetRect.width).to.be(10);
+        expect(widget.offsetRect.height).to.be(10);
+        panel.update(true);
+        expect(widget.offsetRect.width).to.be(110);
+        expect(widget.offsetRect.height).to.be(115);
       });
 
       it('should be a no-op if invisible', () => {
@@ -327,13 +328,15 @@ describe('phosphor-stackedpanel', () => {
         var widget = new Widget();
         panel.setOffsetGeometry(10, 10, 110, 115);
         attachWidget(panel, document.body);
-        panel.addChild(widget);
         panel.hidden = true;
+        panel.addChild(widget);
+        panel.currentWidget = widget;
         sendMessage(panel, MSG_LAYOUT_REQUEST);
         expect(widget.offsetRect.width).to.not.be(110);
         sendMessage(panel, MSG_UPDATE_REQUEST);
         expect(panel.messages.indexOf('update-request')).to.not.be(-1);
       });
+
     });
 
     describe('#onLayoutRequest()', () => {
