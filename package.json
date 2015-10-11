@@ -5,10 +5,10 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "dependencies": {
-    "phosphor-messaging": "^1.0.3",
-    "phosphor-properties": "^1.1.0",
-    "phosphor-signaling": "^1.1.0",
-    "phosphor-widget": "^0.9.8"
+    "phosphor-messaging": "^1.0.5",
+    "phosphor-properties": "^1.2.0",
+    "phosphor-signaling": "^1.1.2",
+    "phosphor-widget": "^0.9.11"
   },
   "devDependencies": {
     "browserify": "^11.0.1",
@@ -27,8 +27,8 @@
     "karma-mocha-reporter": "^1.1.1",
     "mocha": "^2.2.5",
     "rimraf": "^2.4.2",
-    "typedoc": "git://github.com/phosphorjs/typedoc.git",
-    "typescript": "1.6.0-beta"
+    "typedoc": "^0.3.11",
+    "typescript": "^1.6.2"
   },
   "scripts": {
     "clean": "rimraf lib && rimraf test/build && rimraf test/coverage",
@@ -57,7 +57,9 @@
     "lib/index.d.ts"
   ],
   "browserify": {
-    "transform": ["browserify-css"]
+    "transform": [
+      "browserify-css"
+    ]
   },
   "keywords": [
     "ui",
