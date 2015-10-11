@@ -28,13 +28,6 @@ import './index.css';
 
 
 /**
- * `p-StackedPanel`: the class name added to StackedPanel instances.
- */
-export
-const STACKED_PANEL_CLASS = 'p-StackedPanel';
-
-
-/**
  * The arguments object emitted with various [[StackedPanel]] signals.
  */
 export
@@ -56,6 +49,11 @@ interface IWidgetIndexArgs {
  */
 export
 class StackedPanel extends Widget {
+  /**
+   * The class name added to StackedPanel instances.
+   */
+  static p_StackedPanel = 'p-StackedPanel';
+
   /**
    * A signal emitted when the current widget is changed.
    *
@@ -88,7 +86,7 @@ class StackedPanel extends Widget {
    */
   constructor() {
     super();
-    this.addClass(STACKED_PANEL_CLASS);
+    this.addClass(StackedPanel.p_StackedPanel);
   }
 
   /**

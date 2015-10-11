@@ -26,7 +26,7 @@ import {
 } from 'phosphor-widget';
 
 import {
-  STACKED_PANEL_CLASS, StackedPanel
+  StackedPanel
 } from '../../lib/index';
 
 
@@ -54,15 +54,15 @@ class LogWidget extends Widget {
 
 describe('phosphor-stackedpanel', () => {
 
-  describe('STACKED_PANEL_CLASS', () => {
-
-    it('should equal `p-StackedPanel`', () => {
-      expect(STACKED_PANEL_CLASS).to.be('p-StackedPanel');
-    });
-
-  });
-
   describe('StackedPanel', () => {
+
+    describe('.p_StackedPanel', () => {
+
+      it('should equal `p-StackedPanel`', () => {
+        expect(StackedPanel.p_StackedPanel).to.be('p-StackedPanel');
+      });
+
+    });
 
     describe('.currentChangedSignal', () => {
 
@@ -100,9 +100,9 @@ describe('phosphor-stackedpanel', () => {
         expect(panel instanceof StackedPanel).to.be(true);
       });
 
-      it('should set `STACKED_PANEL_CLASS`', () => {
+      it('should set `p-StackedPanel`', () => {
         var panel = new StackedPanel();
-        expect(panel.hasClass(STACKED_PANEL_CLASS)).to.be(true)
+        expect(panel.hasClass(StackedPanel.p_StackedPanel)).to.be(true)
       });
 
     });
