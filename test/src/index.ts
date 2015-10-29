@@ -22,7 +22,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  MSG_LAYOUT_REQUEST, ResizeMessage, Widget, attachWidget
+  ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import {
@@ -56,14 +56,6 @@ describe('phosphor-stackedpanel', () => {
 
   describe('StackedPanel', () => {
 
-    describe('.p_StackedPanel', () => {
-
-      it('should equal `p-StackedPanel`', () => {
-        expect(StackedPanel.p_StackedPanel).to.be('p-StackedPanel');
-      });
-
-    });
-
     describe('.currentChangedSignal', () => {
 
       it('should be a signal', () => {
@@ -87,13 +79,13 @@ describe('phosphor-stackedpanel', () => {
       });
 
       it('should default to `null`', () => {
-        var panel = new StackedPanel();
+        let panel = new StackedPanel();
         expect(StackedPanel.currentWidgetProperty.get(panel)).to.be(null);
       });
 
       it('should send a `layout-request`', () => {
-        var panel = new LogPanel();
-        var widget = new Widget();
+        let panel = new LogPanel();
+        let widget = new Widget();
         panel.children = [widget];
         panel.messages = [];
         StackedPanel.currentWidgetProperty.set(panel, widget);
@@ -105,13 +97,13 @@ describe('phosphor-stackedpanel', () => {
     describe('#constructor()', () => {
 
       it('should accept no arguments', () => {
-        var panel = new StackedPanel();
+        let panel = new StackedPanel();
         expect(panel instanceof StackedPanel).to.be(true);
       });
 
       it('should add the `p-StackedPanel` class', () => {
-        var panel = new StackedPanel();
-        expect(panel.hasClass(StackedPanel.p_StackedPanel)).to.be(true)
+        let panel = new StackedPanel();
+        expect(panel.hasClass('p-StackedPanel')).to.be(true)
       });
 
     });
@@ -119,17 +111,17 @@ describe('phosphor-stackedpanel', () => {
     describe('#currentChanged', () => {
 
       it('should be emitted when the current widget is changed', () => {
-        var called = false;
-        var panel = new StackedPanel();
+        let called = false;
+        let panel = new StackedPanel();
         panel.currentChanged.connect(() => { called = true; });
-        var widget0 = new Widget();
+        let widget0 = new Widget();
         panel.addChild(widget0);
         expect(called).to.be(false);
         panel.currentWidget = widget0;
         expect(called).to.be(true);
 
         called = false;
-        var widget1 = new Widget();
+        let widget1 = new Widget();
         panel.addChild(widget1);
         expect(called).to.be(false);
         panel.currentWidget = widget0;
@@ -143,21 +135,24 @@ describe('phosphor-stackedpanel', () => {
     describe('#widgetRemoved', () => {
 
       it('should be emitted when a widget is removed', () => {
-        var called = false;
-        var panel = new StackedPanel();
+        let called = false;
+        let panel = new StackedPanel();
         panel.widgetRemoved.connect(() => { called = true; });
-        var widget0 = new Widget();
+        let widget0 = new Widget();
         panel.addChild(widget0);
         expect(called).to.be(false);
         panel.removeChild(widget0);
         expect(called).to.be(true);
 
         called = false;
-        var widget1 = new Widget();
+        let widget1 = new Widget();
         panel.addChild(widget1);
+        panel.currentWidget = widget1;
         expect(called).to.be(false);
+        expect(panel.currentWidget).to.be(widget1);
         panel.removeChild(widget1);
         expect(called).to.be(true);
+        expect(panel.currentWidget).to.be(null);
       });
 
     });
@@ -165,14 +160,14 @@ describe('phosphor-stackedpanel', () => {
     describe('#currentWidget', () => {
 
       it('should be `null` if there are no widgets', () => {
-        var panel = new StackedPanel();
+        let panel = new StackedPanel();
         expect(panel.currentWidget).to.be(null);
       });
 
       it('should be equal to the current widget', () => {
-        var panel = new StackedPanel();
-        var widget0 = new Widget();
-        var widget1 = new Widget();
+        let panel = new StackedPanel();
+        let widget0 = new Widget();
+        let widget1 = new Widget();
         panel.addChild(widget0);
         expect(panel.currentWidget).to.be(null);
         panel.currentWidget = widget0;
@@ -184,9 +179,9 @@ describe('phosphor-stackedpanel', () => {
       });
 
       it('should be a pure delegate to the `currentWidgetProperty`', () => {
-        var panel = new StackedPanel();
-        var widget0 = new Widget();
-        var widget1 = new Widget();
+        let panel = new StackedPanel();
+        let widget0 = new Widget();
+        let widget1 = new Widget();
         panel.children = [widget0, widget1];
         panel.currentWidget = widget0;
         expect(StackedPanel.currentWidgetProperty.get(panel)).to.eql(widget0);
@@ -199,26 +194,26 @@ describe('phosphor-stackedpanel', () => {
     describe('#onChildAdded()', () => {
 
       it('should be invoked when a child is added', () => {
-        var panel = new LogPanel();
-        var widget = new Widget();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        let widget = new Widget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         expect(panel.messages.indexOf('child-added')).to.not.be(-1);
       });
 
       it('should hide the new child', () => {
-        var panel = new StackedPanel();
-        var widget = new Widget();
-        attachWidget(panel, document.body);
+        let panel = new StackedPanel();
+        let widget = new Widget();
+        Widget.attach(panel, document.body);
         expect(widget.hidden).to.be(false);
         panel.addChild(widget);
         expect(widget.hidden).to.be(true);
       });
 
       it('should send `after-attach` to the child', () => {
-        var panel = new StackedPanel();
-        var widget = new LogWidget();
-        attachWidget(panel, document.body);
+        let panel = new StackedPanel();
+        let widget = new LogWidget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         expect(widget.messages.indexOf('after-attach')).to.not.be(-1);
       });
@@ -228,29 +223,18 @@ describe('phosphor-stackedpanel', () => {
     describe('#onChildRemoved()', () => {
 
       it('should be invoked when a child is added', () => {
-        var panel = new LogPanel();
-        var widget = new Widget();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        let widget = new Widget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         panel.removeChild(widget);
         expect(panel.messages.indexOf('child-removed')).to.not.be(-1);
       });
 
-      it('should clear child offset geometry', () => {
-        var panel = new StackedPanel();
-        var widget = new Widget();
-        widget.setOffsetGeometry(10, 10, 100, 100);
-        attachWidget(panel, document.body);
-        panel.addChild(widget);
-        panel.currentWidget = widget;
-        panel.removeChild(widget);
-        expect(widget.offsetRect.left).to.be(0);
-      });
-
       it('should send `before-detach` to the child', () => {
-        var panel = new StackedPanel();
-        var widget = new LogWidget();
-        attachWidget(panel, document.body);
+        let panel = new StackedPanel();
+        let widget = new LogWidget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         panel.removeChild(widget);
         expect(widget.messages.indexOf('before-detach')).to.not.be(-1);
@@ -261,9 +245,9 @@ describe('phosphor-stackedpanel', () => {
     describe('#onChildMoved()', () => {
 
       it('should be invoked when a child is moved', () => {
-        var panel = new LogPanel();
-        var widget0 = new Widget();
-        var widget1 = new Widget();
+        let panel = new LogPanel();
+        let widget0 = new Widget();
+        let widget1 = new Widget();
         panel.children = [widget0, widget1];
         panel.moveChild(1, 0);
         expect(panel.messages.indexOf('child-moved')).to.not.be(-1);
@@ -274,8 +258,8 @@ describe('phosphor-stackedpanel', () => {
     describe('#onAfterShow()', () => {
 
       it('should be invoked after the panel is shown', () => {
-        var panel = new LogPanel();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        Widget.attach(panel, document.body);
         panel.hidden = true;
         panel.messages = [];
         panel.hidden = false;
@@ -283,8 +267,8 @@ describe('phosphor-stackedpanel', () => {
       });
 
       it('should send an `update-request`', () => {
-        var panel = new LogPanel();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        Widget.attach(panel, document.body);
         panel.hidden = true;
         panel.messages = [];
         panel.hidden = false;
@@ -296,14 +280,14 @@ describe('phosphor-stackedpanel', () => {
     describe('#onAfterAttach()', () => {
 
       it('should be invoked after the panel is attached', () => {
-        var panel = new LogPanel();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        Widget.attach(panel, document.body);
         expect(panel.messages.indexOf('after-attach')).to.not.be(-1);
       });
 
       it('should post a `layout-request`', (done) => {
-        var panel = new LogPanel();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        Widget.attach(panel, document.body);
         expect(panel.messages.indexOf('layout-request')).to.be(-1);
         requestAnimationFrame(() => {
           expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
@@ -316,30 +300,39 @@ describe('phosphor-stackedpanel', () => {
     describe('#onResize()', () => {
 
       it('should be invoked on a `resize` message', () => {
-        var panel = new LogPanel();
-        var message = new ResizeMessage(100, 100);
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        let message = new ResizeMessage(100, 100);
+        Widget.attach(panel, document.body);
         sendMessage(panel, message);
         expect(panel.messages.indexOf('resize')).to.not.be(-1);
       });
 
       it('should handle an unknown size', () => {
-        var panel = new LogPanel();
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        Widget.attach(panel, document.body);
         sendMessage(panel, ResizeMessage.UnknownSize);
         expect(panel.messages.indexOf('resize')).to.not.be(-1);
       });
 
       it('should resize the current widget', () => {
-        var panel = new StackedPanel();
-        var widget = new Widget();
-        attachWidget(panel, document.body);
+        let panel = new StackedPanel();
+        let widget = new Widget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         panel.currentWidget = widget;
-        sendMessage(panel, MSG_LAYOUT_REQUEST);
-        panel.setOffsetGeometry(0, 0, 100, 100);
-        expect(widget.offsetRect.width).to.be(100);
-        expect(widget.offsetRect.height).to.be(100);
+        panel.node.style.position = 'absolute';
+        panel.node.style.top = '0px';
+        panel.node.style.left = '0px';
+        panel.node.style.width = '0px';
+        panel.node.style.height = '0px';
+        sendMessage(panel, Widget.MsgLayoutRequest);
+        panel.node.style.width = '100px';
+        panel.node.style.height = '100px';
+        sendMessage(panel, new ResizeMessage(100, 100));
+        expect(widget.node.offsetTop).to.be(0);
+        expect(widget.node.offsetLeft).to.be(0);
+        expect(widget.node.offsetWidth).to.be(100);
+        expect(widget.node.offsetHeight).to.be(100);
       });
 
     });
@@ -347,27 +340,30 @@ describe('phosphor-stackedpanel', () => {
     describe('#onUpdateRequest()', () => {
 
       it('should be invoked on an `update-request` message', () => {
-        var panel = new LogPanel();
+        let panel = new LogPanel();
         panel.update(true);
         expect(panel.messages.indexOf('update-request')).to.not.be(-1);
       });
 
       it('should resize the current widget', () => {
-        var panel = new LogPanel();
-        var widget = new Widget();
-        panel.setOffsetGeometry(10, 10, 110, 115);
-        attachWidget(panel, document.body);
+        let panel = new LogPanel();
+        let widget = new Widget();
+        Widget.attach(panel, document.body);
         panel.addChild(widget);
         panel.currentWidget = widget;
-        sendMessage(panel, MSG_LAYOUT_REQUEST);
-        expect(widget.offsetRect.width).to.be(110);
-        expect(widget.offsetRect.height).to.be(115);
-        widget.setOffsetGeometry(0, 0, 10, 10);
-        expect(widget.offsetRect.width).to.be(10);
-        expect(widget.offsetRect.height).to.be(10);
+        panel.node.style.position = 'absolute';
+        panel.node.style.top = '0px';
+        panel.node.style.left = '0px';
+        panel.node.style.width = '0px';
+        panel.node.style.height = '0px';
+        sendMessage(panel, Widget.MsgLayoutRequest);
+        panel.node.style.width = '100px';
+        panel.node.style.height = '100px';
         panel.update(true);
-        expect(widget.offsetRect.width).to.be(110);
-        expect(widget.offsetRect.height).to.be(115);
+        expect(widget.node.offsetTop).to.be(0);
+        expect(widget.node.offsetLeft).to.be(0);
+        expect(widget.node.offsetWidth).to.be(100);
+        expect(widget.node.offsetHeight).to.be(100);
       });
 
     });
@@ -375,34 +371,34 @@ describe('phosphor-stackedpanel', () => {
     describe('#onLayoutRequest()', () => {
 
       it('should be invoked on a `layout-request` message', () => {
-        var panel = new LogPanel();
-        sendMessage(panel, MSG_LAYOUT_REQUEST);
+        let panel = new LogPanel();
+        sendMessage(panel, Widget.MsgLayoutRequest);
         expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
       });
 
       it('should send a `layout-request` to its parent', () => {
-        var panel1 = new LogWidget();
-        var panel2 = new StackedPanel();
+        let panel1 = new LogWidget();
+        let panel2 = new StackedPanel();
         panel2.parent = panel1;
-        attachWidget(panel1, document.body);
+        Widget.attach(panel1, document.body);
         clearMessageData(panel1);
         clearMessageData(panel2);
         expect(panel1.messages.indexOf('layout-request')).to.be(-1);
-        sendMessage(panel2, MSG_LAYOUT_REQUEST);
+        sendMessage(panel2, Widget.MsgLayoutRequest);
         expect(panel1.messages.indexOf('layout-request')).to.not.be(-1);
       });
 
       it('should setup the geometry of the panel', () => {
-        var panel = new StackedPanel();
-        var child = new Widget();
+        let panel = new StackedPanel();
+        let child = new Widget();
         child.node.style.minWidth = '50px';
         child.node.style.minHeight = '50px';
         panel.children = [child];
         panel.currentWidget = child;
-        attachWidget(panel, document.body);
+        Widget.attach(panel, document.body);
         expect(panel.node.style.minWidth).to.be('');
         expect(panel.node.style.minHeight).to.be('');
-        sendMessage(panel, MSG_LAYOUT_REQUEST);
+        sendMessage(panel, Widget.MsgLayoutRequest);
         expect(panel.node.style.minWidth).to.be('50px');
         expect(panel.node.style.minHeight).to.be('50px');
       });

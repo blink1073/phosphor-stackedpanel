@@ -8,6 +8,10 @@
 'use strict';
 
 import {
+  IBoxSizing, boxSizing, sizeLimits
+} from 'phosphor-domutil';
+
+import {
   Message, postMessage, sendMessage
 } from 'phosphor-messaging';
 
@@ -20,11 +24,16 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  ChildMessage, MSG_AFTER_ATTACH, MSG_BEFORE_DETACH, MSG_LAYOUT_REQUEST,
-  ResizeMessage, Widget
+  ChildMessage, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import './index.css';
+
+
+/**
+ * The class name added to StackedPanel instances.
+ */
+const STACKED_PANEL_CLASS = 'p-StackedPanel';
 
 
 /**
@@ -49,11 +58,6 @@ interface IWidgetIndexArgs {
  */
 export
 class StackedPanel extends Widget {
-  /**
-   * The class name added to StackedPanel instances.
-   */
-  static p_StackedPanel = 'p-StackedPanel';
-
   /**
    * A signal emitted when the current widget is changed.
    *
@@ -86,7 +90,7 @@ class StackedPanel extends Widget {
    */
   constructor() {
     super();
-    this.addClass(StackedPanel.p_StackedPanel);
+    this.addClass(STACKED_PANEL_CLASS);
   }
 
   /**
@@ -135,7 +139,7 @@ class StackedPanel extends Widget {
   protected onChildAdded(msg: ChildMessage): void {
     msg.child.hidden = true;
     this.node.appendChild(msg.child.node);
-    if (this.isAttached) sendMessage(msg.child, MSG_AFTER_ATTACH);
+    if (this.isAttached) sendMessage(msg.child, Widget.MsgAfterAttach);
   }
 
   /**
@@ -143,9 +147,9 @@ class StackedPanel extends Widget {
    */
   protected onChildRemoved(msg: ChildMessage): void {
     if (msg.child === this.currentWidget) this.currentWidget = null;
-    if (this.isAttached) sendMessage(msg.child, MSG_BEFORE_DETACH);
+    if (this.isAttached) sendMessage(msg.child, Widget.MsgBeforeDetach);
     this.node.removeChild(msg.child.node);
-    msg.child.clearOffsetGeometry();
+    resetGeometry(msg.child);
     this.widgetRemoved.emit({ index: msg.previousIndex, widget: msg.child });
   }
 
@@ -165,7 +169,7 @@ class StackedPanel extends Widget {
    * A message handler invoked on an `'after-attach'` message.
    */
   protected onAfterAttach(msg: Message): void {
-    postMessage(this, MSG_LAYOUT_REQUEST);
+    postMessage(this, Widget.MsgLayoutRequest);
   }
 
   /**
@@ -173,12 +177,9 @@ class StackedPanel extends Widget {
    */
   protected onResize(msg: ResizeMessage): void {
     if (this.isVisible) {
-      if (msg.width < 0 || msg.height < 0) {
-        var rect = this.offsetRect;
-        this._layoutChildren(rect.width, rect.height);
-      } else {
-        this._layoutChildren(msg.width, msg.height);
-      }
+      let width = msg.width < 0 ? this.node.offsetWidth : msg.width;
+      let height = msg.height < 0 ? this.node.offsetHeight : msg.height;
+      this._layoutChildren(width, height);
     }
   }
 
@@ -187,8 +188,7 @@ class StackedPanel extends Widget {
    */
   protected onUpdateRequest(msg: Message): void {
     if (this.isVisible) {
-      var rect = this.offsetRect;
-      this._layoutChildren(rect.width, rect.height);
+      this._layoutChildren(this.node.offsetWidth, this.node.offsetHeight);
     }
   }
 
@@ -206,31 +206,35 @@ class StackedPanel extends Widget {
    */
   private _setupGeometry(): void {
     // Compute the new size limits.
-    var minW = 0;
-    var minH = 0;
-    var maxW = Infinity;
-    var maxH = Infinity;
-    var widget = this.currentWidget
+    let minW = 0;
+    let minH = 0;
+    let maxW = Infinity;
+    let maxH = Infinity;
+    let widget = this.currentWidget
     if (widget) {
-      var limits = widget.sizeLimits;
+      let limits = sizeLimits(widget.node);
       minW = limits.minWidth;
       minH = limits.minHeight;
       maxW = limits.maxWidth;
       maxH = limits.maxHeight;
     }
 
-    // Add the box sizing to the size constraints.
-    var box = this.boxSizing;
-    minW += box.horizontalSum;
-    minH += box.verticalSum;
-    maxW += box.horizontalSum;
-    maxH += box.verticalSum;
+    // Update the box sizing and add it to the size constraints.
+    this._box = boxSizing(this.node);
+    minW += this._box.horizontalSum;
+    minH += this._box.verticalSum;
+    maxW += this._box.horizontalSum;
+    maxH += this._box.verticalSum;
 
     // Update the panel's size constraints.
-    this.setSizeLimits(minW, minH, maxW, maxH);
+    let style = this.node.style;
+    style.minWidth = minW + 'px';
+    style.minHeight = minH + 'px';
+    style.maxWidth = maxW === Infinity ? 'none' : maxW + 'px';
+    style.maxHeight = maxH === Infinity ? 'none' : maxH + 'px';
 
     // Notifiy the parent that it should relayout.
-    if (this.parent) sendMessage(this.parent, MSG_LAYOUT_REQUEST);
+    if (this.parent) sendMessage(this.parent, Widget.MsgLayoutRequest);
 
     // Update the layout for the child widgets.
     this.update(true);
@@ -241,20 +245,22 @@ class StackedPanel extends Widget {
    */
   private _layoutChildren(offsetWidth: number, offsetHeight: number): void {
     // Bail early if there is no current widget.
-    var widget = this.currentWidget;
+    let widget = this.currentWidget;
     if (!widget) {
       return;
     }
 
+    // Ensure the box sizing is created.
+    let box = this._box || (this._box = boxSizing(this.node));
+
     // Compute the actual layout bounds adjusted for border and padding.
-    var box = this.boxSizing;
-    var top = box.paddingTop;
-    var left = box.paddingLeft;
-    var width = offsetWidth - box.horizontalSum;
-    var height = offsetHeight - box.verticalSum;
+    let top = box.paddingTop;
+    let left = box.paddingLeft;
+    let width = offsetWidth - box.horizontalSum;
+    let height = offsetHeight - box.verticalSum;
 
     // Update the current widget's layout geometry.
-    widget.setOffsetGeometry(left, top, width, height);
+    setGeometry(widget, left, top, width, height);
   }
 
   /**
@@ -267,7 +273,109 @@ class StackedPanel extends Widget {
     // advantage of message compression, but some browsers repaint
     // before the message gets processed, resulting in jitter. So,
     // the layout request is sent and processed immediately.
-    sendMessage(this, MSG_LAYOUT_REQUEST);
+    sendMessage(this, Widget.MsgLayoutRequest);
     this.currentChanged.emit({ index: this.childIndex(val), widget: val });
   }
+
+  private _box: IBoxSizing = null;
+}
+
+
+/**
+ * An object which represents an offset rect.
+ */
+interface IRect {
+  /**
+   * The offset top edge, in pixels.
+   */
+  top: number;
+
+  /**
+   * The offset left edge, in pixels.
+   */
+  left: number;
+
+  /**
+   * The offset width, in pixels.
+   */
+  width: number;
+
+  /**
+   * The offset height, in pixels.
+   */
+  height: number;
+}
+
+
+/**
+ * A private attached property which stores a widget offset rect.
+ */
+let rectProperty = new Property<Widget, IRect>({
+  create: createRect,
+});
+
+
+/**
+ * Create a new offset rect filled with NaNs.
+ */
+function createRect(): IRect {
+  return { top: NaN, left: NaN, width: NaN, height: NaN };
+}
+
+
+/**
+ * Get the offset rect for a widget.
+ */
+function getRect(widget: Widget): IRect {
+  return rectProperty.get(widget);
+}
+
+
+/**
+ * Set the offset geometry for the given widget.
+ *
+ * A resize message will be dispatched to the widget if appropriate.
+ */
+function setGeometry(widget: Widget, left: number, top: number, width: number, height: number): void {
+  let resized = false;
+  let rect = getRect(widget);
+  let style = widget.node.style;
+  if (rect.top !== top) {
+    rect.top = top;
+    style.top = top + 'px';
+  }
+  if (rect.left !== left) {
+    rect.left = left;
+    style.left = left + 'px';
+  }
+  if (rect.width !== width) {
+    resized = true;
+    rect.width = width;
+    style.width = width + 'px';
+  }
+  if (rect.height !== height) {
+    resized = true;
+    rect.height = height;
+    style.height = height + 'px';
+  }
+  if (resized) {
+    sendMessage(widget, new ResizeMessage(width, height));
+  }
+}
+
+
+/**
+ * Reset the inline geometry and rect cache for the given widget
+ */
+function resetGeometry(widget: Widget): void {
+  let rect = getRect(widget);
+  let style = widget.node.style;
+  rect.top = NaN;
+  rect.left = NaN;
+  rect.width = NaN;
+  rect.height = NaN;
+  style.top = '';
+  style.left = '';
+  style.width = '';
+  style.height = '';
 }
