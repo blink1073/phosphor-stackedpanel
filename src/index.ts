@@ -16,7 +16,7 @@ import {
 } from 'phosphor-messaging';
 
 import {
-  Property
+  IChangedArgs, Property
 } from 'phosphor-properties';
 
 import {
@@ -24,7 +24,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  ChildMessage, ResizeMessage, Widget
+  ChildMessage, Panel, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import './index.css';
@@ -37,52 +37,30 @@ const STACKED_PANEL_CLASS = 'p-StackedPanel';
 
 
 /**
- * The arguments object emitted with various [[StackedPanel]] signals.
+ * A panel where only one child widget is visible at a time.
  */
 export
-interface IWidgetIndexArgs {
-  /**
-   * The index associated with the widget.
-   */
-  index: number;
-
-  /**
-   * The widget associated with the signal.
-   */
-  widget: Widget;
-}
-
-
-/**
- * A layout widget where only one child widget is visible at a time.
- */
-export
-class StackedPanel extends Widget {
+class StackedPanel extends Panel {
   /**
    * A signal emitted when the current widget is changed.
    *
    * **See also:** [[currentChanged]]
    */
-  static currentChangedSignal = new Signal<StackedPanel, IWidgetIndexArgs>();
-
-  /**
-   * A signal emitted when a widget is removed from the panel.
-   *
-   * **See also:** [[widgetRemoved]]
-   */
-  static widgetRemovedSignal = new Signal<StackedPanel, IWidgetIndexArgs>();
+  static currentChangedSignal = new Signal<StackedPanel, IChangedArgs<Widget>>();
 
   /**
    * The property descriptor for the current widget.
    *
-   * This controls which child widget is visible.
+   * This controls which child widget is currently visible.
    *
    * **See also:** [[currentWidget]]
    */
   static currentWidgetProperty = new Property<StackedPanel, Widget>({
+    name: 'currentWidget',
     value: null,
     coerce: (owner, val) => (val && val.parent === owner) ? val : null,
     changed: (owner, old, val) => owner._onCurrentWidgetChanged(old, val),
+    notify: StackedPanel.currentChangedSignal,
   });
 
   /**
@@ -99,18 +77,8 @@ class StackedPanel extends Widget {
    * #### Notes
    * This is a pure delegate to the [[currentChangedSignal]].
    */
-  get currentChanged(): ISignal<StackedPanel, IWidgetIndexArgs> {
+  get currentChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
     return StackedPanel.currentChangedSignal.bind(this);
-  }
-
-  /**
-   * A signal emitted when a widget is removed from the panel.
-   *
-   * #### Notes
-   * This is a pure delegate to the [[widgetRemovedSignal]].
-   */
-  get widgetRemoved(): ISignal<StackedPanel, IWidgetIndexArgs> {
-    return StackedPanel.widgetRemovedSignal.bind(this);
   }
 
   /**
@@ -143,6 +111,11 @@ class StackedPanel extends Widget {
   }
 
   /**
+   * A message handler invoked on a `'child-moved'` message.
+   */
+  protected onChildMoved(msg: ChildMessage): void { /* no-op */ }
+
+  /**
    * A message handler invoked on a `'child-removed'` message.
    */
   protected onChildRemoved(msg: ChildMessage): void {
@@ -150,26 +123,22 @@ class StackedPanel extends Widget {
     if (this.isAttached) sendMessage(msg.child, Widget.MsgBeforeDetach);
     this.node.removeChild(msg.child.node);
     resetGeometry(msg.child);
-    this.widgetRemoved.emit({ index: msg.previousIndex, widget: msg.child });
   }
-
-  /**
-   * A message handler invoked on a `'child-moved'` message.
-   */
-  protected onChildMoved(msg: ChildMessage): void { /* no-op */ }
 
   /**
    * A message handler invoked on an `'after-show'` message.
    */
   protected onAfterShow(msg: Message): void {
-    this.update(true);
+    super.onAfterShow(msg);
+    sendMessage(this, Widget.MsgUpdateRequest);
   }
 
   /**
    * A message handler invoked on an `'after-attach'` message.
    */
   protected onAfterAttach(msg: Message): void {
-    postMessage(this, Widget.MsgLayoutRequest);
+    super.onAfterAttach(msg);
+    postMessage(this, Panel.MsgLayoutRequest);
   }
 
   /**
@@ -234,10 +203,10 @@ class StackedPanel extends Widget {
     style.maxHeight = maxH === Infinity ? 'none' : maxH + 'px';
 
     // Notifiy the parent that it should relayout.
-    if (this.parent) sendMessage(this.parent, Widget.MsgLayoutRequest);
+    if (this.parent) sendMessage(this.parent, Panel.MsgLayoutRequest);
 
     // Update the layout for the child widgets.
-    this.update(true);
+    sendMessage(this, Widget.MsgUpdateRequest);
   }
 
   /**
@@ -273,8 +242,7 @@ class StackedPanel extends Widget {
     // advantage of message compression, but some browsers repaint
     // before the message gets processed, resulting in jitter. So,
     // the layout request is sent and processed immediately.
-    sendMessage(this, Widget.MsgLayoutRequest);
-    this.currentChanged.emit({ index: this.childIndex(val), widget: val });
+    sendMessage(this, Panel.MsgLayoutRequest);
   }
 
   private _box: IBoxSizing = null;
@@ -310,7 +278,8 @@ interface IRect {
 /**
  * A private attached property which stores a widget offset rect.
  */
-let rectProperty = new Property<Widget, IRect>({
+const rectProperty = new Property<Widget, IRect>({
+  name: 'rect',
   create: createRect,
 });
 
