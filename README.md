@@ -4,7 +4,7 @@ phosphor-stackedpanel
 [![Build Status](https://travis-ci.org/phosphorjs/phosphor-stackedpanel.svg)](https://travis-ci.org/phosphorjs/phosphor-stackedpanel?branch=master)
 [![Coverage Status](https://coveralls.io/repos/phosphorjs/phosphor-stackedpanel/badge.svg?branch=master&service=github)](https://coveralls.io/github/phosphorjs/phosphor-stackedpanel?branch=master)
 
-A Phosphor layout widget where only one child is visible at a time.
+A Phosphor layout panel where only one child is visible at a time.
 
 [API Docs](http://phosphorjs.github.io/phosphor-stackedpanel/api/)
 
@@ -108,3 +108,28 @@ Usage Examples
 
 **Note:** This module is fully compatible with Node/Babel/ES6/ES5. Simply
 omit the type declarations when using a language other than TypeScript.
+
+```typescript
+import {
+  StackedPanel
+} from 'phosphor-stackedpanel';
+
+import {
+  Widget
+} from 'phosphor-widget';
+
+
+// Create some content for the panel.
+let w1 = new Widget();
+let w2 = new Widget();
+let w3 = new Widget();
+
+// Setup the stacked panel.
+let panel = new StackedPanel();
+panel.children.assign([w1, w2, w3]);
+
+// Set the currently visible widget as needed.
+panel.currentWidget = w1;
+panel.currentWidget = w2;
+panel.currentWidget = w3;
+```
