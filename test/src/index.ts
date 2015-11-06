@@ -14,7 +14,7 @@ import {
 } from 'phosphor-messaging';
 
 import {
-  Property
+  IChangedArgs, Property
 } from 'phosphor-properties';
 
 import {
@@ -22,7 +22,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  ResizeMessage, Widget
+  Panel, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import {
@@ -52,6 +52,17 @@ class LogWidget extends Widget {
 }
 
 
+class BaseLogPanel extends Panel {
+
+  messages: string[] = [];
+
+  processMessage(msg: Message): void {
+    super.processMessage(msg);
+    this.messages.push(msg.type);
+  }
+}
+
+
 describe('phosphor-stackedpanel', () => {
 
   describe('StackedPanel', () => {
@@ -64,18 +75,14 @@ describe('phosphor-stackedpanel', () => {
 
     });
 
-    describe('.widgetRemovedSignal', () => {
-
-      it('should be a signal', () => {
-        expect(StackedPanel.widgetRemovedSignal instanceof Signal).to.be(true);
-      });
-
-    });
-
     describe('.currentWidgetProperty', () => {
 
       it('should be a property descriptor', () => {
         expect(StackedPanel.currentWidgetProperty instanceof Property).to.be(true);
+      });
+
+      it('should have the name `currentWidget`', () => {
+        expect(StackedPanel.currentWidgetProperty.name).to.be('currentWidget');
       });
 
       it('should default to `null`', () => {
@@ -86,7 +93,7 @@ describe('phosphor-stackedpanel', () => {
       it('should send a `layout-request`', () => {
         let panel = new LogPanel();
         let widget = new Widget();
-        panel.children = [widget];
+        panel.children.assign([widget]);
         panel.messages = [];
         StackedPanel.currentWidgetProperty.set(panel, widget);
         expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
@@ -112,49 +119,71 @@ describe('phosphor-stackedpanel', () => {
 
       it('should be emitted when the current widget is changed', () => {
         let called = false;
+        let widget = new Widget();
         let panel = new StackedPanel();
         panel.currentChanged.connect(() => { called = true; });
-        let widget0 = new Widget();
-        panel.addChild(widget0);
-        expect(called).to.be(false);
-        panel.currentWidget = widget0;
-        expect(called).to.be(true);
-
-        called = false;
-        let widget1 = new Widget();
-        panel.addChild(widget1);
-        expect(called).to.be(false);
-        panel.currentWidget = widget0;
-        expect(called).to.be(false);
-        panel.currentWidget = widget1;
+        panel.children.add(widget);
+        panel.currentWidget = widget;
         expect(called).to.be(true);
       });
 
-    });
-
-    describe('#widgetRemoved', () => {
-
-      it('should be emitted when a widget is removed', () => {
-        let called = false;
+      it('should emit the correct changed args', () => {
         let panel = new StackedPanel();
-        panel.widgetRemoved.connect(() => { called = true; });
-        let widget0 = new Widget();
-        panel.addChild(widget0);
-        expect(called).to.be(false);
-        panel.removeChild(widget0);
-        expect(called).to.be(true);
+        let sender: StackedPanel = null;
+        let args: IChangedArgs<Widget> = null;
+        panel.currentChanged.connect((s, a) => { sender = s; args = a; });
 
-        called = false;
+        let widget0 = new Widget();
+        panel.children.add(widget0);
+        expect(sender).to.be(null);
+        expect(args).to.be(null);
+        panel.currentWidget = widget0;
+
+        expect(sender).to.be(panel);
+        expect(args).to.eql({
+          name: 'currentWidget',
+          oldValue: null,
+          newValue: widget0,
+        });
+
+        sender = null;
+        args = null;
+
         let widget1 = new Widget();
-        panel.addChild(widget1);
+        panel.children.add(widget1);
+        expect(sender).to.be(null);
+        expect(args).to.be(null);
+
         panel.currentWidget = widget1;
-        expect(called).to.be(false);
-        expect(panel.currentWidget).to.be(widget1);
-        panel.removeChild(widget1);
-        expect(called).to.be(true);
-        expect(panel.currentWidget).to.be(null);
+        expect(sender).to.be(panel);
+        expect(args).to.eql({
+          name: 'currentWidget',
+          oldValue: widget0,
+          newValue: widget1,
+        });
       });
 
+      it('should emit when the current widget is removed', () => {
+        let panel = new StackedPanel();
+        let sender: StackedPanel = null;
+        let args: IChangedArgs<Widget> = null;
+        panel.currentChanged.connect((s, a) => { sender = s; args = a; });
+
+        let widget = new Widget();
+        panel.children.add(widget);
+        panel.currentWidget = widget;
+
+        sender = null;
+        args = null;
+
+        panel.children.remove(widget);
+        expect(sender).to.be(panel);
+        expect(args).to.eql({
+          name: 'currentWidget',
+          oldValue: widget,
+          newValue: null,
+        });
+      });
     });
 
     describe('#currentWidget', () => {
@@ -168,25 +197,25 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let widget0 = new Widget();
         let widget1 = new Widget();
-        panel.addChild(widget0);
+        panel.children.add(widget0);
         expect(panel.currentWidget).to.be(null);
         panel.currentWidget = widget0;
-        expect(panel.currentWidget).to.eql(widget0);
-        panel.addChild(widget1);
-        expect(panel.currentWidget).to.eql(widget0);
+        expect(panel.currentWidget).to.be(widget0);
+        panel.children.add(widget1);
+        expect(panel.currentWidget).to.be(widget0);
         panel.currentWidget = widget1;
-        expect(panel.currentWidget).to.eql(widget1);
+        expect(panel.currentWidget).to.be(widget1);
       });
 
       it('should be a pure delegate to the `currentWidgetProperty`', () => {
         let panel = new StackedPanel();
         let widget0 = new Widget();
         let widget1 = new Widget();
-        panel.children = [widget0, widget1];
+        panel.children.assign([widget0, widget1]);
         panel.currentWidget = widget0;
-        expect(StackedPanel.currentWidgetProperty.get(panel)).to.eql(widget0);
+        expect(StackedPanel.currentWidgetProperty.get(panel)).to.be(widget0);
         StackedPanel.currentWidgetProperty.set(panel, widget1);
-        expect(panel.currentWidget).to.eql(widget1);
+        expect(panel.currentWidget).to.be(widget1);
       });
 
     });
@@ -197,7 +226,7 @@ describe('phosphor-stackedpanel', () => {
         let panel = new LogPanel();
         let widget = new Widget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
+        panel.children.add(widget);
         expect(panel.messages.indexOf('child-added')).to.not.be(-1);
       });
 
@@ -206,7 +235,7 @@ describe('phosphor-stackedpanel', () => {
         let widget = new Widget();
         Widget.attach(panel, document.body);
         expect(widget.hidden).to.be(false);
-        panel.addChild(widget);
+        panel.children.add(widget);
         expect(widget.hidden).to.be(true);
       });
 
@@ -214,7 +243,7 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let widget = new LogWidget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
+        panel.children.add(widget);
         expect(widget.messages.indexOf('after-attach')).to.not.be(-1);
       });
 
@@ -226,8 +255,8 @@ describe('phosphor-stackedpanel', () => {
         let panel = new LogPanel();
         let widget = new Widget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
-        panel.removeChild(widget);
+        panel.children.add(widget);
+        panel.children.remove(widget);
         expect(panel.messages.indexOf('child-removed')).to.not.be(-1);
       });
 
@@ -235,8 +264,8 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let widget = new LogWidget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
-        panel.removeChild(widget);
+        panel.children.add(widget);
+        panel.children.remove(widget);
         expect(widget.messages.indexOf('before-detach')).to.not.be(-1);
       });
 
@@ -248,8 +277,8 @@ describe('phosphor-stackedpanel', () => {
         let panel = new LogPanel();
         let widget0 = new Widget();
         let widget1 = new Widget();
-        panel.children = [widget0, widget1];
-        panel.moveChild(1, 0);
+        panel.children.assign([widget0, widget1]);
+        panel.children.move(1, 0);
         expect(panel.messages.indexOf('child-moved')).to.not.be(-1);
       });
 
@@ -318,14 +347,14 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let widget = new Widget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
+        panel.children.add(widget);
         panel.currentWidget = widget;
         panel.node.style.position = 'absolute';
         panel.node.style.top = '0px';
         panel.node.style.left = '0px';
         panel.node.style.width = '0px';
         panel.node.style.height = '0px';
-        sendMessage(panel, Widget.MsgLayoutRequest);
+        sendMessage(panel, Panel.MsgLayoutRequest);
         panel.node.style.width = '100px';
         panel.node.style.height = '100px';
         sendMessage(panel, new ResizeMessage(100, 100));
@@ -341,7 +370,7 @@ describe('phosphor-stackedpanel', () => {
 
       it('should be invoked on an `update-request` message', () => {
         let panel = new LogPanel();
-        panel.update(true);
+        sendMessage(panel, Widget.MsgUpdateRequest);
         expect(panel.messages.indexOf('update-request')).to.not.be(-1);
       });
 
@@ -349,17 +378,17 @@ describe('phosphor-stackedpanel', () => {
         let panel = new LogPanel();
         let widget = new Widget();
         Widget.attach(panel, document.body);
-        panel.addChild(widget);
+        panel.children.add(widget);
         panel.currentWidget = widget;
         panel.node.style.position = 'absolute';
         panel.node.style.top = '0px';
         panel.node.style.left = '0px';
         panel.node.style.width = '0px';
         panel.node.style.height = '0px';
-        sendMessage(panel, Widget.MsgLayoutRequest);
+        sendMessage(panel, Panel.MsgLayoutRequest);
         panel.node.style.width = '100px';
         panel.node.style.height = '100px';
-        panel.update(true);
+        sendMessage(panel, Widget.MsgUpdateRequest);
         expect(widget.node.offsetTop).to.be(0);
         expect(widget.node.offsetLeft).to.be(0);
         expect(widget.node.offsetWidth).to.be(100);
@@ -372,19 +401,19 @@ describe('phosphor-stackedpanel', () => {
 
       it('should be invoked on a `layout-request` message', () => {
         let panel = new LogPanel();
-        sendMessage(panel, Widget.MsgLayoutRequest);
+        sendMessage(panel, Panel.MsgLayoutRequest);
         expect(panel.messages.indexOf('layout-request')).to.not.be(-1);
       });
 
       it('should send a `layout-request` to its parent', () => {
-        let panel1 = new LogWidget();
+        let panel1 = new BaseLogPanel();
         let panel2 = new StackedPanel();
         panel2.parent = panel1;
         Widget.attach(panel1, document.body);
         clearMessageData(panel1);
         clearMessageData(panel2);
         expect(panel1.messages.indexOf('layout-request')).to.be(-1);
-        sendMessage(panel2, Widget.MsgLayoutRequest);
+        sendMessage(panel2, Panel.MsgLayoutRequest);
         expect(panel1.messages.indexOf('layout-request')).to.not.be(-1);
       });
 
@@ -393,12 +422,12 @@ describe('phosphor-stackedpanel', () => {
         let child = new Widget();
         child.node.style.minWidth = '50px';
         child.node.style.minHeight = '50px';
-        panel.children = [child];
+        panel.children.assign([child]);
         panel.currentWidget = child;
         Widget.attach(panel, document.body);
         expect(panel.node.style.minWidth).to.be('');
         expect(panel.node.style.minHeight).to.be('');
-        sendMessage(panel, Widget.MsgLayoutRequest);
+        sendMessage(panel, Panel.MsgLayoutRequest);
         expect(panel.node.style.minWidth).to.be('50px');
         expect(panel.node.style.minHeight).to.be('50px');
       });
