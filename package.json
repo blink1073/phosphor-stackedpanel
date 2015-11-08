@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "dependencies": {
-    "phosphor-domutil": "^1.0.0",
+    "phosphor-domutil": "^1.0.1",
     "phosphor-messaging": "^1.0.5",
     "phosphor-properties": "^2.0.0",
     "phosphor-signaling": "^1.1.2",
