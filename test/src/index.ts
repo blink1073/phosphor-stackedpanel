@@ -67,14 +67,6 @@ describe('phosphor-stackedpanel', () => {
 
   describe('StackedPanel', () => {
 
-    describe('.currentChangedSignal', () => {
-
-      it('should be a signal', () => {
-        expect(StackedPanel.currentChangedSignal instanceof Signal).to.be(true);
-      });
-
-    });
-
     describe('.currentWidgetProperty', () => {
 
       it('should be a property descriptor', () => {
@@ -88,6 +80,10 @@ describe('phosphor-stackedpanel', () => {
       it('should default to `null`', () => {
         let panel = new StackedPanel();
         expect(StackedPanel.currentWidgetProperty.get(panel)).to.be(null);
+      });
+
+      it('should have a notify signal', () => {
+        expect(StackedPanel.currentWidgetProperty.notify instanceof Signal).to.be(true);
       });
 
       it('should send a `layout-request`', () => {
@@ -115,13 +111,47 @@ describe('phosphor-stackedpanel', () => {
 
     });
 
-    describe('#currentChanged', () => {
+    describe('#currentWidget', () => {
+
+      it('should be `null` if there are no widgets', () => {
+        let panel = new StackedPanel();
+        expect(panel.currentWidget).to.be(null);
+      });
+
+      it('should be equal to the current widget', () => {
+        let panel = new StackedPanel();
+        let widget0 = new Widget();
+        let widget1 = new Widget();
+        panel.children.add(widget0);
+        expect(panel.currentWidget).to.be(null);
+        panel.currentWidget = widget0;
+        expect(panel.currentWidget).to.be(widget0);
+        panel.children.add(widget1);
+        expect(panel.currentWidget).to.be(widget0);
+        panel.currentWidget = widget1;
+        expect(panel.currentWidget).to.be(widget1);
+      });
+
+      it('should be a pure delegate to the `currentWidgetProperty`', () => {
+        let panel = new StackedPanel();
+        let widget0 = new Widget();
+        let widget1 = new Widget();
+        panel.children.assign([widget0, widget1]);
+        panel.currentWidget = widget0;
+        expect(StackedPanel.currentWidgetProperty.get(panel)).to.be(widget0);
+        StackedPanel.currentWidgetProperty.set(panel, widget1);
+        expect(panel.currentWidget).to.be(widget1);
+      });
+
+    });
+
+    describe('#currentWidgetChanged', () => {
 
       it('should be emitted when the current widget is changed', () => {
         let called = false;
         let widget = new Widget();
         let panel = new StackedPanel();
-        panel.currentChanged.connect(() => { called = true; });
+        panel.currentWidgetChanged.connect(() => { called = true; });
         panel.children.add(widget);
         panel.currentWidget = widget;
         expect(called).to.be(true);
@@ -131,7 +161,7 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let sender: StackedPanel = null;
         let args: IChangedArgs<Widget> = null;
-        panel.currentChanged.connect((s, a) => { sender = s; args = a; });
+        panel.currentWidgetChanged.connect((s, a) => { sender = s; args = a; });
 
         let widget0 = new Widget();
         panel.children.add(widget0);
@@ -167,7 +197,7 @@ describe('phosphor-stackedpanel', () => {
         let panel = new StackedPanel();
         let sender: StackedPanel = null;
         let args: IChangedArgs<Widget> = null;
-        panel.currentChanged.connect((s, a) => { sender = s; args = a; });
+        panel.currentWidgetChanged.connect((s, a) => { sender = s; args = a; });
 
         let widget = new Widget();
         panel.children.add(widget);
@@ -184,40 +214,6 @@ describe('phosphor-stackedpanel', () => {
           newValue: null,
         });
       });
-    });
-
-    describe('#currentWidget', () => {
-
-      it('should be `null` if there are no widgets', () => {
-        let panel = new StackedPanel();
-        expect(panel.currentWidget).to.be(null);
-      });
-
-      it('should be equal to the current widget', () => {
-        let panel = new StackedPanel();
-        let widget0 = new Widget();
-        let widget1 = new Widget();
-        panel.children.add(widget0);
-        expect(panel.currentWidget).to.be(null);
-        panel.currentWidget = widget0;
-        expect(panel.currentWidget).to.be(widget0);
-        panel.children.add(widget1);
-        expect(panel.currentWidget).to.be(widget0);
-        panel.currentWidget = widget1;
-        expect(panel.currentWidget).to.be(widget1);
-      });
-
-      it('should be a pure delegate to the `currentWidgetProperty`', () => {
-        let panel = new StackedPanel();
-        let widget0 = new Widget();
-        let widget1 = new Widget();
-        panel.children.assign([widget0, widget1]);
-        panel.currentWidget = widget0;
-        expect(StackedPanel.currentWidgetProperty.get(panel)).to.be(widget0);
-        StackedPanel.currentWidgetProperty.set(panel, widget1);
-        expect(panel.currentWidget).to.be(widget1);
-      });
-
     });
 
     describe('#onChildAdded()', () => {

@@ -42,13 +42,6 @@ const STACKED_PANEL_CLASS = 'p-StackedPanel';
 export
 class StackedPanel extends Panel {
   /**
-   * A signal emitted when the current widget is changed.
-   *
-   * **See also:** [[currentChanged]]
-   */
-  static currentChangedSignal = new Signal<StackedPanel, IChangedArgs<Widget>>();
-
-  /**
    * The property descriptor for the current widget.
    *
    * This controls which child widget is currently visible.
@@ -60,7 +53,7 @@ class StackedPanel extends Panel {
     value: null,
     coerce: (owner, val) => (val && val.parent === owner) ? val : null,
     changed: (owner, old, val) => owner._onCurrentWidgetChanged(old, val),
-    notify: StackedPanel.currentChangedSignal,
+    notify: new Signal<StackedPanel, IChangedArgs<Widget>>(),
   });
 
   /**
@@ -69,16 +62,6 @@ class StackedPanel extends Panel {
   constructor() {
     super();
     this.addClass(STACKED_PANEL_CLASS);
-  }
-
-  /**
-   * A signal emitted when the current widget is changed.
-   *
-   * #### Notes
-   * This is a pure delegate to the [[currentChangedSignal]].
-   */
-  get currentChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
-    return StackedPanel.currentChangedSignal.bind(this);
   }
 
   /**
@@ -99,6 +82,16 @@ class StackedPanel extends Panel {
    */
   set currentWidget(widget: Widget) {
     StackedPanel.currentWidgetProperty.set(this, widget);
+  }
+
+  /**
+   * A signal emitted when the current widget is changed.
+   *
+   * #### Notes
+   * This is the notify signal for the [[currentWidgetProperty]].
+   */
+  get currentWidgetChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
+    return StackedPanel.currentWidgetProperty.notify.bind(this);
   }
 
   /**
