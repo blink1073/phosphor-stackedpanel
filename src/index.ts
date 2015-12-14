@@ -24,7 +24,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  ChildMessage, Panel, ResizeMessage, Widget
+  ChildIndexMessage, Panel, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import './index.css';
@@ -97,7 +97,7 @@ class StackedPanel extends Panel {
   /**
    * A message handler invoked on a `'child-added'` message.
    */
-  protected onChildAdded(msg: ChildMessage): void {
+  protected onChildAdded(msg: ChildIndexMessage): void {
     msg.child.hidden = true;
     this.node.appendChild(msg.child.node);
     if (this.isAttached) sendMessage(msg.child, Widget.MsgAfterAttach);
@@ -106,12 +106,12 @@ class StackedPanel extends Panel {
   /**
    * A message handler invoked on a `'child-moved'` message.
    */
-  protected onChildMoved(msg: ChildMessage): void { /* no-op */ }
+  protected onChildMoved(msg: ChildIndexMessage): void { /* no-op */ }
 
   /**
    * A message handler invoked on a `'child-removed'` message.
    */
-  protected onChildRemoved(msg: ChildMessage): void {
+  protected onChildRemoved(msg: ChildIndexMessage): void {
     if (msg.child === this.currentWidget) this.currentWidget = null;
     if (this.isAttached) sendMessage(msg.child, Widget.MsgBeforeDetach);
     this.node.removeChild(msg.child.node);
