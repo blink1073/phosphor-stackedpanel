@@ -126,7 +126,9 @@ let w3 = new Widget();
 
 // Setup the stacked panel.
 let panel = new StackedPanel();
-panel.children.assign([w1, w2, w3]);
+panel.addChild(w1);
+panel.addChild(w2);
+panel.addChild(w3);
 
 // Set the currently visible widget as needed.
 panel.currentWidget = w1;
