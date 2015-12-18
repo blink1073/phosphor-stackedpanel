@@ -6,10 +6,10 @@
   "typings": "lib/index.d.ts",
   "dependencies": {
     "phosphor-domutil": "^1.2.0",
-    "phosphor-messaging": "^1.0.5",
+    "phosphor-messaging": "^1.0.6",
     "phosphor-properties": "^2.0.0",
     "phosphor-signaling": "^1.2.0",
-    "phosphor-widget": "^1.0.0-beta.2"
+    "phosphor-widget": "^1.0.0-beta.4"
   },
   "devDependencies": {
     "browserify": "^11.0.1",
