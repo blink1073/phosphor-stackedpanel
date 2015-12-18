@@ -430,12 +430,14 @@ namespace StackedLayoutPrivate {
   function onCurrentWidgetChanged(owner: StackedLayout, old: Widget, val: Widget): void {
     if (old) old.hide();
     if (val) val.show();
+    if (!owner.parent) return;
+
     // IE paints before firing animation frame callbacks when toggling
     // `display: none`. This causes flicker, so IE is fit immediately.
     if (IsIE) {
-      sendMessage(this.parent, Widget.MsgFitRequest);
+      sendMessage(owner.parent, Widget.MsgFitRequest);
     } else {
-      this.parent.fit();
+      owner.parent.fit();
     }
   }
 
