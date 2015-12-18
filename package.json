@@ -1,6 +1,6 @@
 {
   "name": "phosphor-stackedpanel",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "A Phosphor layout panel where only one child is visible at a time.",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
