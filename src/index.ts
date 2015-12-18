@@ -12,7 +12,7 @@ import {
 } from 'phosphor-domutil';
 
 import {
-  Message, postMessage, sendMessage
+  Message, sendMessage
 } from 'phosphor-messaging';
 
 import {
@@ -24,7 +24,7 @@ import {
 } from 'phosphor-signaling';
 
 import {
-  ChildIndexMessage, Panel, ResizeMessage, Widget
+  Panel, PanelLayout, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 import './index.css';
@@ -38,23 +38,18 @@ const STACKED_PANEL_CLASS = 'p-StackedPanel';
 
 /**
  * A panel where only one child widget is visible at a time.
+ *
+ * #### Notes
+ * This class provides a convenience wrapper around a [[StackedLayout]].
  */
 export
 class StackedPanel extends Panel {
   /**
-   * The property descriptor for the current widget.
-   *
-   * This controls which child widget is currently visible.
-   *
-   * **See also:** [[currentWidget]]
+   * Create a stacked layout for a stacked panel.
    */
-  static currentWidgetProperty = new Property<StackedPanel, Widget>({
-    name: 'currentWidget',
-    value: null,
-    coerce: (owner, val) => (val && val.parent === owner) ? val : null,
-    changed: (owner, old, val) => owner._onCurrentWidgetChanged(old, val),
-    notify: new Signal<StackedPanel, IChangedArgs<Widget>>(),
-  });
+  static createLayout(): StackedLayout {
+    return new StackedLayout();
+  }
 
   /**
    * Construct a new stacked panel.
@@ -62,60 +57,124 @@ class StackedPanel extends Panel {
   constructor() {
     super();
     this.addClass(STACKED_PANEL_CLASS);
-  }
-
-  /**
-   * Get the current panel widget.
-   *
-   * #### Notes
-   * This is a pure delegate to the [[currentWidgetProperty]].
-   */
-  get currentWidget(): Widget {
-    return StackedPanel.currentWidgetProperty.get(this);
-  }
-
-  /**
-   * Set the current panel widget.
-   *
-   * #### Notes
-   * This is a pure delegate to the [[currentWidgetProperty]].
-   */
-  set currentWidget(widget: Widget) {
-    StackedPanel.currentWidgetProperty.set(this, widget);
+    let layout = this.layout as StackedLayout;
+    layout.currentChanged.connect((sender, args) => {
+      this.currentChanged.emit(args);
+    });
+    layout.widgetRemoved.connect((sender, args) => {
+      this.widgetRemoved.emit(args);
+    });
   }
 
   /**
    * A signal emitted when the current widget is changed.
+   */
+  get currentChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
+    return StackedPanelPrivate.currentChangedSignal.bind(this);
+  }
+
+  /**
+   * A signal emitted when a widget is removed from the panel.
+   */
+  get widgetRemoved(): ISignal<StackedPanel, Widget> {
+    return StackedPanelPrivate.widgetRemovedSignal.bind(this);
+  }
+
+  /**
+   * Get the current panel widget.
+   */
+  get currentWidget(): Widget {
+    return (this.layout as StackedLayout).currentWidget;
+  }
+
+  /**
+   * Set the current panel widget.
+   */
+  set currentWidget(value: Widget) {
+    (this.layout as StackedLayout).currentWidget = value;
+  }
+}
+
+
+/**
+ * A layout where only one child widget is visible at a time.
+ */
+export
+class StackedLayout extends PanelLayout {
+  /**
+   * A signal emitted when the current widget is changed.
+   */
+  get currentChanged(): ISignal<StackedLayout, IChangedArgs<Widget>> {
+    return StackedLayoutPrivate.currentChangedSignal.bind(this);
+  }
+
+  /**
+   * A signal emitted when a widget is removed from the layout.
+   */
+  get widgetRemoved(): ISignal<StackedLayout, Widget> {
+    return StackedLayoutPrivate.widgetRemovedSignal.bind(this);
+  }
+
+  /**
+   * Get the current layout widget.
+   */
+  get currentWidget(): Widget {
+    return StackedLayoutPrivate.currentWidgetProperty.get(this);
+  }
+
+  /**
+   * Set the current layout widget.
+   */
+  set currentWidget(value: Widget) {
+    StackedLayoutPrivate.currentWidgetProperty.set(this, value);
+  }
+
+  /**
+   * Attach a child widget to the parent's DOM node.
+   *
+   * @param index - The current index of the child in the layout.
+   *
+   * @param child - The child widget to attach to the parent.
    *
    * #### Notes
-   * This is the notify signal for the [[currentWidgetProperty]].
+   * This is a reimplementation of the superclass method.
    */
-  get currentWidgetChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
-    return StackedPanel.currentWidgetProperty.notify.bind(this);
+  protected attachChild(index: number, child: Widget): void {
+    child.hide();
+    this.parent.node.appendChild(child.node);
+    if (this.parent.isAttached) sendMessage(child, Widget.MsgAfterAttach);
   }
 
   /**
-   * A message handler invoked on a `'child-added'` message.
+   * Move a child widget in the parent's DOM node.
+   *
+   * @param fromIndex - The previous index of the child in the layout.
+   *
+   * @param toIndex - The current index of the child in the layout.
+   *
+   * @param child - The child widget to move in the parent.
+   *
+   * #### Notes
+   * This is a reimplementation of the superclass method.
    */
-  protected onChildAdded(msg: ChildIndexMessage): void {
-    msg.child.hidden = true;
-    this.node.appendChild(msg.child.node);
-    if (this.isAttached) sendMessage(msg.child, Widget.MsgAfterAttach);
-  }
+  protected moveChild(fromIndex: number, toIndex: number, child: Widget): void { /* no-op */ }
 
   /**
-   * A message handler invoked on a `'child-moved'` message.
+   * Detach a child widget from the parent's DOM node.
+   *
+   * @param index - The previous index of the child in the layout.
+   *
+   * @param child - The child widget to detach from the parent.
+   *
+   * #### Notes
+   * This is a reimplementation of the superclass method.
    */
-  protected onChildMoved(msg: ChildIndexMessage): void { /* no-op */ }
-
-  /**
-   * A message handler invoked on a `'child-removed'` message.
-   */
-  protected onChildRemoved(msg: ChildIndexMessage): void {
-    if (msg.child === this.currentWidget) this.currentWidget = null;
-    if (this.isAttached) sendMessage(msg.child, Widget.MsgBeforeDetach);
-    this.node.removeChild(msg.child.node);
-    resetGeometry(msg.child);
+  protected detachChild(index: number, child: Widget): void {
+    if (child === this.currentWidget) this.currentWidget = null;
+    if (this.parent.isAttached) sendMessage(child, Widget.MsgBeforeDetach);
+    this.parent.node.removeChild(child.node);
+    StackedLayoutPrivate.resetGeometry(child);
+    this.widgetRemoved.emit(child);
   }
 
   /**
@@ -123,7 +182,7 @@ class StackedPanel extends Panel {
    */
   protected onAfterShow(msg: Message): void {
     super.onAfterShow(msg);
-    sendMessage(this, Widget.MsgUpdateRequest);
+    this.parent.update();
   }
 
   /**
@@ -131,17 +190,15 @@ class StackedPanel extends Panel {
    */
   protected onAfterAttach(msg: Message): void {
     super.onAfterAttach(msg);
-    postMessage(this, Panel.MsgLayoutRequest);
+    this.parent.fit();
   }
 
   /**
    * A message handler invoked on a `'resize'` message.
    */
   protected onResize(msg: ResizeMessage): void {
-    if (this.isVisible) {
-      let width = msg.width < 0 ? this.node.offsetWidth : msg.width;
-      let height = msg.height < 0 ? this.node.offsetHeight : msg.height;
-      this._layoutChildren(width, height);
+    if (this.parent.isVisible) {
+      StackedLayoutPrivate.update(this, msg.width, msg.height);
     }
   }
 
@@ -149,30 +206,108 @@ class StackedPanel extends Panel {
    * A message handler invoked on an `'update-request'` message.
    */
   protected onUpdateRequest(msg: Message): void {
-    if (this.isVisible) {
-      this._layoutChildren(this.node.offsetWidth, this.node.offsetHeight);
+    if (this.parent.isVisible) {
+      StackedLayoutPrivate.update(this, -1, -1);
     }
   }
 
   /**
-   * A message handler invoked on a `'layout-request'` message.
+   * A message handler invoked on a `'fit-request'` message.
    */
-  protected onLayoutRequest(msg: Message): void {
-    if (this.isAttached) {
-      this._setupGeometry();
+  protected onFitRequest(msg: Message): void {
+    if (this.parent.isAttached) {
+      StackedLayoutPrivate.fit(this);
     }
+  }
+}
+
+
+/**
+ * The namespace for the `StackedPanel` class private data.
+ */
+namespace StackedPanelPrivate {
+  /**
+   * A signal emitted when the current widget is changed.
+   */
+  export
+  const currentChangedSignal = new Signal<StackedPanel, IChangedArgs<Widget>>();
+
+  /**
+   * A signal emitted when a widget is removed from the panel.
+   */
+  export
+  const widgetRemovedSignal = new Signal<StackedPanel, Widget>();
+}
+
+
+/**
+ * The namespace for the `StackedLayout` class private data.
+ */
+namespace StackedLayoutPrivate {
+  /**
+   * A flag indicating whether the browser is IE.
+   */
+  export
+  const IsIE = /Trident/.test(navigator.userAgent);
+
+  /**
+   * A signal emitted when the current widget is changed.
+   */
+  export
+  const currentChangedSignal = new Signal<StackedLayout, IChangedArgs<Widget>>();
+
+  /**
+   * A signal emitted when a widget is removed from the layout.
+   */
+  export
+  const widgetRemovedSignal = new Signal<StackedLayout, Widget>();
+
+  /**
+   * The property descriptor for the current widget.
+   */
+  export
+  const currentWidgetProperty = new Property<StackedLayout, Widget>({
+    name: 'currentWidget',
+    value: null,
+    coerce: coerceCurrentWidget,
+    changed: onCurrentWidgetChanged,
+    notify: currentChangedSignal,
+  });
+
+  /**
+   * Reset the layout geometry for the given child widget.
+   */
+  export
+  function resetGeometry(widget: Widget): void {
+    let rect = rectProperty.get(widget);
+    let style = widget.node.style;
+    rect.top = NaN;
+    rect.left = NaN;
+    rect.width = NaN;
+    rect.height = NaN;
+    style.top = '';
+    style.left = '';
+    style.width = '';
+    style.height = '';
   }
 
   /**
-   * Update the size constraints of the panel.
+   * Fit the layout to the total size required by the child widgets.
    */
-  private _setupGeometry(): void {
+  export
+  function fit(layout: StackedLayout): void {
+    // Bail early if there is no parent.
+    let parent = layout.parent;
+    if (!parent) {
+      return;
+    }
+
     // Compute the new size limits.
     let minW = 0;
     let minH = 0;
     let maxW = Infinity;
     let maxH = Infinity;
-    let widget = this.currentWidget
+    let widget = layout.currentWidget
     if (widget) {
       let limits = sizeLimits(widget.node);
       minW = limits.minWidth;
@@ -182,40 +317,56 @@ class StackedPanel extends Panel {
     }
 
     // Update the box sizing and add it to the size constraints.
-    this._box = boxSizing(this.node);
-    minW += this._box.horizontalSum;
-    minH += this._box.verticalSum;
-    maxW += this._box.horizontalSum;
-    maxH += this._box.verticalSum;
+    let box = boxSizing(parent.node);
+    boxSizingProperty.set(parent, box);
+    minW += box.horizontalSum;
+    minH += box.verticalSum;
+    maxW += box.horizontalSum;
+    maxH += box.verticalSum;
 
     // Update the panel's size constraints.
-    let style = this.node.style;
+    let style = parent.node.style;
     style.minWidth = minW + 'px';
     style.minHeight = minH + 'px';
     style.maxWidth = maxW === Infinity ? 'none' : maxW + 'px';
     style.maxHeight = maxH === Infinity ? 'none' : maxH + 'px';
 
-    // Notifiy the parent that it should relayout.
-    if (this.parent) sendMessage(this.parent, Panel.MsgLayoutRequest);
+    // Notify the ancestor that it should fit immediately.
+    if (parent.parent) sendMessage(parent.parent, Widget.MsgFitRequest);
 
-    // Update the layout for the child widgets.
-    sendMessage(this, Widget.MsgUpdateRequest);
+    // Notify the parent that it should update immediately.
+    sendMessage(parent, Widget.MsgUpdateRequest);
   }
 
   /**
    * Layout the children using the given offset width and height.
+   *
+   * If the dimensions are unknown, they should be specified as `-1`.
    */
-  private _layoutChildren(offsetWidth: number, offsetHeight: number): void {
+  export
+  function update(layout: StackedLayout, offsetWidth: number, offsetHeight: number): void {
     // Bail early if there is no current widget.
-    let widget = this.currentWidget;
+    let widget = layout.currentWidget;
     if (!widget) {
       return;
     }
 
-    // Ensure the box sizing is created.
-    let box = this._box || (this._box = boxSizing(this.node));
+    // Bail early if there is no parent.
+    let parent = layout.parent;
+    if (!parent) {
+      return;
+    }
+
+    // Measure the parent if the offset dimensions are unknown.
+    if (offsetWidth < 0) {
+      offsetWidth = parent.node.offsetWidth;
+    }
+    if (offsetHeight < 0) {
+      offsetHeight = parent.node.offsetHeight;
+    }
 
     // Compute the actual layout bounds adjusted for border and padding.
+    let box = boxSizingProperty.get(parent);
     let top = box.paddingTop;
     let left = box.paddingLeft;
     let width = offsetWidth - box.horizontalSum;
@@ -226,118 +377,97 @@ class StackedPanel extends Panel {
   }
 
   /**
-   * The change handler for the [[currentWidgetProperty]].
+   * An object which represents an offset rect.
    */
-  private _onCurrentWidgetChanged(old: Widget, val: Widget): void {
-    if (old) old.hidden = true;
-    if (val) val.hidden = false;
-    // Ideally, the layout request would be posted in order to take
-    // advantage of message compression, but some browsers repaint
-    // before the message gets processed, resulting in jitter. So,
-    // the layout request is sent and processed immediately.
-    sendMessage(this, Panel.MsgLayoutRequest);
+  interface IRect {
+    /**
+     * The offset top edge, in pixels.
+     */
+    top: number;
+
+    /**
+     * The offset left edge, in pixels.
+     */
+    left: number;
+
+    /**
+     * The offset width, in pixels.
+     */
+    width: number;
+
+    /**
+     * The offset height, in pixels.
+     */
+    height: number;
   }
-
-  private _box: IBoxSizing = null;
-}
-
-
-/**
- * An object which represents an offset rect.
- */
-interface IRect {
-  /**
-   * The offset top edge, in pixels.
-   */
-  top: number;
-
-  /**
-   * The offset left edge, in pixels.
-   */
-  left: number;
 
   /**
-   * The offset width, in pixels.
+   * A property descriptor for a widget offset rect.
    */
-  width: number;
+  var rectProperty = new Property<Widget, IRect>({
+    name: 'rect',
+    create: () => ({ top: NaN, left: NaN, width: NaN, height: NaN }),
+  });
 
   /**
-   * The offset height, in pixels.
+   * A property descriptor for the box sizing of a widget.
    */
-  height: number;
-}
+  var boxSizingProperty = new Property<Widget, IBoxSizing>({
+    name: 'boxSizing',
+    create: owner => boxSizing(owner.node),
+  });
 
-
-/**
- * A private attached property which stores a widget offset rect.
- */
-const rectProperty = new Property<Widget, IRect>({
-  name: 'rect',
-  create: createRect,
-});
-
-
-/**
- * Create a new offset rect filled with NaNs.
- */
-function createRect(): IRect {
-  return { top: NaN, left: NaN, width: NaN, height: NaN };
-}
-
-
-/**
- * Get the offset rect for a widget.
- */
-function getRect(widget: Widget): IRect {
-  return rectProperty.get(widget);
-}
-
-
-/**
- * Set the offset geometry for the given widget.
- *
- * A resize message will be dispatched to the widget if appropriate.
- */
-function setGeometry(widget: Widget, left: number, top: number, width: number, height: number): void {
-  let resized = false;
-  let rect = getRect(widget);
-  let style = widget.node.style;
-  if (rect.top !== top) {
-    rect.top = top;
-    style.top = top + 'px';
+  /**
+   * The coerce handler for the `currentWidget` property.
+   */
+  function coerceCurrentWidget(owner: StackedLayout, value: Widget): Widget {
+    return (value && owner.childIndex(value) !== -1) ? value : null;
   }
-  if (rect.left !== left) {
-    rect.left = left;
-    style.left = left + 'px';
-  }
-  if (rect.width !== width) {
-    resized = true;
-    rect.width = width;
-    style.width = width + 'px';
-  }
-  if (rect.height !== height) {
-    resized = true;
-    rect.height = height;
-    style.height = height + 'px';
-  }
-  if (resized) {
-    sendMessage(widget, new ResizeMessage(width, height));
-  }
-}
 
+  /**
+   * The change handler for the `currentWidget` property.
+   */
+  function onCurrentWidgetChanged(owner: StackedLayout, old: Widget, val: Widget): void {
+    if (old) old.hide();
+    if (val) val.show();
+    // IE paints before firing animation frame callbacks when toggling
+    // `display: none`. This causes flicker, so IE is fit immediately.
+    if (IsIE) {
+      sendMessage(this.parent, Widget.MsgFitRequest);
+    } else {
+      this.parent.fit();
+    }
+  }
 
-/**
- * Reset the inline geometry and rect cache for the given widget
- */
-function resetGeometry(widget: Widget): void {
-  let rect = getRect(widget);
-  let style = widget.node.style;
-  rect.top = NaN;
-  rect.left = NaN;
-  rect.width = NaN;
-  rect.height = NaN;
-  style.top = '';
-  style.left = '';
-  style.width = '';
-  style.height = '';
+  /**
+   * Set the offset geometry for the given widget.
+   *
+   * A resize message will be dispatched to the widget if appropriate.
+   */
+  function setGeometry(widget: Widget, left: number, top: number, width: number, height: number): void {
+    let resized = false;
+    let style = widget.node.style;
+    let rect = rectProperty.get(widget);
+    if (rect.top !== top) {
+      rect.top = top;
+      style.top = top + 'px';
+    }
+    if (rect.left !== left) {
+      rect.left = left;
+      style.left = left + 'px';
+    }
+    if (rect.width !== width) {
+      resized = true;
+      rect.width = width;
+      style.width = width + 'px';
+    }
+    if (rect.height !== height) {
+      resized = true;
+      rect.height = height;
+      style.height = height + 'px';
+    }
+    if (resized) {
+      sendMessage(widget, new ResizeMessage(width, height));
+    }
+  }
 }
