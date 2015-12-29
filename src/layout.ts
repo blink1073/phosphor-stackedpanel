@@ -38,13 +38,6 @@ import {
 export
 class StackedLayout extends PanelLayout {
   /**
-   * A signal emitted when the current widget is changed.
-   */
-  get currentChanged(): ISignal<StackedLayout, IChangedArgs<Widget>> {
-    return StackedLayoutPrivate.currentChangedSignal.bind(this);
-  }
-
-  /**
    * A signal emitted when a widget is removed from the layout.
    */
   get widgetRemoved(): ISignal<StackedLayout, Widget> {
@@ -245,12 +238,6 @@ namespace StackedLayoutPrivate {
   const IsIE = /Trident/.test(navigator.userAgent);
 
   /**
-   * A signal emitted when the current widget is changed.
-   */
-  export
-  const currentChangedSignal = new Signal<StackedLayout, IChangedArgs<Widget>>();
-
-  /**
    * A signal emitted when a widget is removed from the layout.
    */
   export
@@ -264,8 +251,7 @@ namespace StackedLayoutPrivate {
     name: 'currentWidget',
     value: null,
     coerce: coerceCurrentWidget,
-    changed: onCurrentWidgetChanged,
-    notify: currentChangedSignal,
+    changed: onCurrentWidgetChanged
   });
 
   /**

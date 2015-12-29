@@ -61,19 +61,9 @@ class StackedPanel extends Panel {
     super();
     this.addClass(STACKED_PANEL_CLASS);
     let layout = this.layout as StackedLayout;
-    layout.currentChanged.connect((sender, args) => {
-      this.currentChanged.emit(args);
-    });
     layout.widgetRemoved.connect((sender, args) => {
       this.widgetRemoved.emit(args);
     });
-  }
-
-  /**
-   * A signal emitted when the current widget is changed.
-   */
-  get currentChanged(): ISignal<StackedPanel, IChangedArgs<Widget>> {
-    return StackedPanelPrivate.currentChangedSignal.bind(this);
   }
 
   /**
@@ -117,12 +107,6 @@ class StackedPanel extends Panel {
  * The namespace for the `StackedPanel` class private data.
  */
 namespace StackedPanelPrivate {
-  /**
-   * A signal emitted when the current widget is changed.
-   */
-  export
-  const currentChangedSignal = new Signal<StackedPanel, IChangedArgs<Widget>>();
-
   /**
    * A signal emitted when a widget is removed from the panel.
    */
