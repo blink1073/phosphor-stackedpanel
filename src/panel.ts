@@ -8,10 +8,6 @@
 'use strict';
 
 import {
-  IChangedArgs
-} from 'phosphor-properties';
-
-import {
   ISignal, Signal
 } from 'phosphor-signaling';
 
@@ -60,10 +56,6 @@ class StackedPanel extends Panel {
   constructor() {
     super();
     this.addClass(STACKED_PANEL_CLASS);
-    let layout = this.layout as StackedLayout;
-    layout.widgetRemoved.connect((sender, args) => {
-      this.widgetRemoved.emit(args);
-    });
   }
 
   /**
@@ -99,6 +91,7 @@ class StackedPanel extends Panel {
    */
   protected onChildRemoved(msg: ChildMessage): void {
     msg.child.removeClass(CHILD_CLASS);
+    this.widgetRemoved.emit(msg.child);
   }
 }
 

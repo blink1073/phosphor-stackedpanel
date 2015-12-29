@@ -16,12 +16,8 @@ import {
 } from 'phosphor-messaging';
 
 import {
-  IChangedArgs, Property
+  Property
 } from 'phosphor-properties';
-
-import {
-  ISignal, Signal
-} from 'phosphor-signaling';
 
 import {
   PanelLayout
@@ -37,13 +33,6 @@ import {
  */
 export
 class StackedLayout extends PanelLayout {
-  /**
-   * A signal emitted when a widget is removed from the layout.
-   */
-  get widgetRemoved(): ISignal<StackedLayout, Widget> {
-    return StackedLayoutPrivate.widgetRemovedSignal.bind(this);
-  }
-
   /**
    * Get the current layout widget.
    */
@@ -104,7 +93,6 @@ class StackedLayout extends PanelLayout {
     if (this.parent.isAttached) sendMessage(child, Widget.MsgBeforeDetach);
     this.parent.node.removeChild(child.node);
     StackedLayoutPrivate.resetGeometry(child);
-    this.widgetRemoved.emit(child);
   }
 
   /**
@@ -236,12 +224,6 @@ namespace StackedLayoutPrivate {
    */
   export
   const IsIE = /Trident/.test(navigator.userAgent);
-
-  /**
-   * A signal emitted when a widget is removed from the layout.
-   */
-  export
-  const widgetRemovedSignal = new Signal<StackedLayout, Widget>();
 
   /**
    * The property descriptor for the current widget.
