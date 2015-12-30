@@ -1,6 +1,6 @@
 {
   "name": "phosphor-stackedpanel",
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0-rc.0",
   "description": "A Phosphor layout panel where visible children are stacked atop one another.",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
