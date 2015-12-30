@@ -4,7 +4,7 @@ phosphor-stackedpanel
 [![Build Status](https://travis-ci.org/phosphorjs/phosphor-stackedpanel.svg)](https://travis-ci.org/phosphorjs/phosphor-stackedpanel?branch=master)
 [![Coverage Status](https://coveralls.io/repos/phosphorjs/phosphor-stackedpanel/badge.svg?branch=master&service=github)](https://coveralls.io/github/phosphorjs/phosphor-stackedpanel?branch=master)
 
-A Phosphor layout panel where only one child is visible at a time.
+A Phosphor layout panel where visible children are stacked atop one another.
 
 [API Docs](http://phosphorjs.github.io/phosphor-stackedpanel/api/)
 
@@ -130,8 +130,8 @@ panel.addChild(w1);
 panel.addChild(w2);
 panel.addChild(w3);
 
-// Set the currently visible widget as needed.
-panel.currentWidget = w1;
-panel.currentWidget = w2;
-panel.currentWidget = w3;
+// Toggle the visible widgets as needed.
+w1.hide();
+w2.show();
+w3.hide();
 ```
