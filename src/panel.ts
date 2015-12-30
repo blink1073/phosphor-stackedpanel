@@ -8,12 +8,12 @@
 'use strict';
 
 import {
-  ISignal, Signal
-} from 'phosphor-signaling';
-
-import {
   Panel
 } from 'phosphor-panel';
+
+import {
+  ISignal, Signal
+} from 'phosphor-signaling';
 
 import {
   ChildMessage, Widget

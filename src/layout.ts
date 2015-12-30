@@ -16,12 +16,12 @@ import {
 } from 'phosphor-messaging';
 
 import {
-  Property
-} from 'phosphor-properties';
-
-import {
   PanelLayout
 } from 'phosphor-panel';
+
+import {
+  Property
+} from 'phosphor-properties';
 
 import {
   ResizeMessage, Widget
