@@ -36,7 +36,6 @@
     "clean:example": "rimraf example/*.js",
     "build:src": "tsc --project src",
     "build:test": "tsc --project test/src",
-    "build:example": "tsc --project example && browserify -t browserify-css example/index.js -o example/bundle.js",
     "build": "npm run build:src && npm run build:test",
     "docs": "rimraf docs/api && typedoc --options scripts/tdoptions.json",
     "postinstall": "npm dedupe",
@@ -71,8 +70,7 @@
     "stackwidget",
     "stackedwidget",
     "ui",
-    "widget",
-    "widgets"
+    "widget"
   ],
   "author": "S. Chris Colbert <sccolbert@gmail.com>",
   "license": "BSD-3-Clause",
