@@ -9,65 +9,251 @@
 
 import expect = require('expect.js');
 
-// import {
-//   Message, clearMessageData, sendMessage
-// } from 'phosphor-messaging';
+import {
+  Message, clearMessageData, sendMessage
+} from 'phosphor-messaging';
 
-// import {
-//   IChangedArgs, Property
-// } from 'phosphor-properties';
+import {
+  Panel
+} from 'phosphor-panel';
 
-// import {
-//   Signal
-// } from 'phosphor-signaling';
+import {
+  IChangedArgs, Property
+} from 'phosphor-properties';
 
-// import {
-//   Panel, ResizeMessage, Widget
-// } from 'phosphor-widget';
+import {
+  Signal
+} from 'phosphor-signaling';
 
-// import {
-//   StackedPanel
-// } from '../../lib/index';
+import {
+  ChildMessage, ResizeMessage, Widget
+} from 'phosphor-widget';
 
-
-// class LogPanel extends StackedPanel {
-
-//   messages: string[] = [];
-
-//   processMessage(msg: Message): void {
-//     super.processMessage(msg);
-//     this.messages.push(msg.type);
-//   }
-// }
+import {
+  StackedLayout
+} from '../../lib/index';
 
 
-// class LogWidget extends Widget {
+class LogLayout extends StackedLayout {
 
-//   messages: string[] = [];
+  messages: string[] = [];
 
-//   processMessage(msg: Message): void {
-//     super.processMessage(msg);
-//     this.messages.push(msg.type);
-//   }
-// }
+  methods: string[] = [];
+
+  processParentMessage(msg: Message): void {
+    super.processParentMessage(msg);
+    this.messages.push(msg.type);
+  }
+
+  protected attachChild(index: number, child: Widget): void {
+    super.attachChild(index, child);
+    this.methods.push('attachChild');
+  }
+
+  protected moveChild(fromIndex: number, toIndex: number, child: Widget): void {
+    super.moveChild(fromIndex, toIndex, child);
+    this.methods.push('moveChild');
+  }
+
+  protected detachChild(index: number, child: Widget): void {
+    super.detachChild(index, child);
+    this.methods.push('detachChild');
+  }
+
+  protected onAfterShow(msg: Message): void {
+    super.onAfterShow(msg);
+    this.methods.push('onAfterShow');
+  }
+
+  protected onAfterAttach(msg: Message): void {
+     super.onAfterAttach(msg);
+     this.methods.push('onAfterAttach');
+  }
+
+  protected onChildShown(msg: ChildMessage): void {
+    super.onChildShown(msg);
+    this.methods.push('onChildShown');
+  }
+
+  protected onChildHidden(msg: ChildMessage): void {
+    super.onChildHidden(msg);
+    this.methods.push('onChildHidden');
+  }
+
+  protected onResize(msg: ResizeMessage): void {
+    super.onResize(msg);
+    this.methods.push('onResize');
+  }
+
+  protected onUpdateRequest(msg: Message): void {
+    super.onUpdateRequest(msg);
+    this.methods.push('onUpdateRequest');
+  }
+
+  protected onFitRequest(msg: Message): void {
+    super.onFitRequest(msg);
+    this.methods.push('onFitRequest');
+  }
+
+}
 
 
-// class BaseLogPanel extends Panel {
+class LogWidget extends Widget {
 
-//   messages: string[] = [];
+  messages: string[] = [];
 
-//   processMessage(msg: Message): void {
-//     super.processMessage(msg);
-//     this.messages.push(msg.type);
-//   }
-// }
+  processMessage(msg: Message): void {
+    super.processMessage(msg);
+    this.messages.push(msg.type);
+  }
+}
+
+
+class BaseLogPanel extends Panel {
+
+  messages: string[] = [];
+
+  processMessage(msg: Message): void {
+    super.processMessage(msg);
+    this.messages.push(msg.type);
+  }
+}
 
 
 describe('phosphor-stackedpanel', () => {
 
-  describe('stub', () => {
+  describe('StackedLayout', () => {
 
-    it('should pass', () => {
+    describe('#attachChild', () => {
+
+      it("should attach a child widget to the parent's DOM node", (done) => {
+        let layout = new LogLayout();
+        let widget0 = new LogWidget();
+        let widget1 = new LogWidget();
+        let parent = new LogWidget();
+        layout.addChild(widget0);
+        layout.addChild(widget1);
+        parent.layout = layout;
+        parent.attach(document.body);
+        requestAnimationFrame(() => {
+          expect(layout.methods.indexOf('attachChild')).to.not.be(-1);
+          expect(parent.node.contains(widget0.node)).to.be(true);
+          expect(parent.node.contains(widget1.node)).to.be(true);
+          parent.dispose();
+          done();
+        });
+
+      });
+
+      it('should send `after-attach` to the children', (done) => {
+        let layout = new LogLayout();
+        let widget0 = new LogWidget();
+        let widget1 = new LogWidget();
+        let parent = new LogWidget();
+        layout.addChild(widget0);
+        layout.addChild(widget1);
+        parent.layout = layout;
+        parent.attach(document.body);
+        requestAnimationFrame(() => {
+          expect(layout.methods.indexOf('attachChild')).to.not.be(-1);
+          expect(widget0.messages.indexOf('after-attach')).to.not.be(-1);
+          expect(widget1.messages.indexOf('after-attach')).to.not.be(-1);
+          parent.dispose();
+          done();
+        });
+
+      });
+
+      it('should call fit on the parent', (done) => {
+        let layout = new LogLayout();
+        let widget0 = new LogWidget();
+        let widget1 = new LogWidget();
+        let parent = new LogWidget();
+        layout.addChild(widget0);
+        layout.addChild(widget1);
+        parent.layout = layout;
+        parent.attach(document.body);
+        requestAnimationFrame(() => {
+          expect(layout.methods.indexOf('attachChild')).to.not.be(-1);
+          parent.messages = [];
+          requestAnimationFrame(() => {
+            expect(layout.messages.indexOf('fit-request')).to.not.be(-1);
+            parent.dispose();
+            done();
+          });
+        });
+      });
+
+    });
+
+    describe('#moveChild()', () => {
+
+      it('should send an update request to the parent', (done) => {
+        let widget = new LogWidget();
+        let children = [new LogWidget(), new LogWidget()];
+        let layout = new LogLayout();
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        widget.layout = layout;
+        children[1].messages = [];
+        widget.attach(document.body);
+        layout.insertChild(0, children[1]);
+        expect(layout.methods.indexOf('moveChild')).to.not.be(-1);
+        requestAnimationFrame(() => {
+          expect(widget.messages.indexOf('update-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
+    describe('#detachChild()', () => {
+
+      it('should be called when a child is detached', () => {
+        let widget = new Widget();
+        let children = [new Widget(), new Widget()];
+        let layout = new LogLayout();
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        widget.layout = layout;
+        widget.attach(document.body);
+        children[1].parent = null;
+        expect(layout.methods.indexOf('detachChild')).to.not.be(-1);
+        widget.dispose();
+      });
+
+      it("should send a `'before-detach'` message if appropriate", () => {
+        let widget = new Widget();
+        let children = [new LogWidget(), new LogWidget()];
+        let layout = new LogLayout();
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        widget.layout = layout;
+        widget.attach(document.body);
+        children[1].parent = null;
+        expect(layout.methods.indexOf('detachChild')).to.not.be(-1);
+        expect(children[1].messages.indexOf('before-detach')).to.not.be(-1);
+        layout.dispose();
+      });
+
+      it('should send a fit request to the parent', (done) => {
+        let widget = new LogWidget();
+        let children = [new LogWidget(), new LogWidget()];
+        let layout = new LogLayout();
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        widget.layout = layout;
+        widget.attach(document.body);
+        children[1].parent = null;
+        expect(layout.methods.indexOf('detachChild')).to.not.be(-1);
+        layout.messages = [];
+        requestAnimationFrame(() => {
+          expect(layout.messages.indexOf('fit-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
 
     });
 
@@ -105,19 +291,7 @@ describe('phosphor-stackedpanel', () => {
 
   //   });
 
-  //   describe('#constructor()', () => {
 
-  //     it('should accept no arguments', () => {
-  //       let panel = new StackedPanel();
-  //       expect(panel instanceof StackedPanel).to.be(true);
-  //     });
-
-  //     it('should add the `p-StackedPanel` class', () => {
-  //       let panel = new StackedPanel();
-  //       expect(panel.hasClass('p-StackedPanel')).to.be(true)
-  //     });
-
-  //   });
 
   //   describe('#currentWidget', () => {
 
