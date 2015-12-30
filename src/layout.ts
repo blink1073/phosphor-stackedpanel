@@ -37,14 +37,36 @@ class StackedLayout extends PanelLayout {
    * Get the current layout widget.
    */
   get currentWidget(): Widget {
-    return StackedLayoutPrivate.currentWidgetProperty.get(this);
+    return this._current;
   }
 
   /**
    * Set the current layout widget.
    */
   set currentWidget(value: Widget) {
-    StackedLayoutPrivate.currentWidgetProperty.set(this, value);
+    value = value || null;
+    if (this._current === value) {
+      return;
+    }
+    if (value && this.childIndex(value) === -1) {
+      console.warn('Widget not contained in layout.');
+      return;
+    }
+    if (this._current) {
+      this._current.hide();
+    }
+    this._current = value;
+    if (this._current) {
+      this._current.show();
+    }
+    if (!this.parent) {
+      return;
+    }
+    if (StackedLayoutPrivate.IsIE) { // prevent flicker on IE
+      sendMessage(this.parent, Widget.MsgFitRequest);
+    } else {
+      this.parent.fit();
+    }
   }
 
   /**
@@ -147,9 +169,8 @@ class StackedLayout extends PanelLayout {
     let minH = 0;
     let maxW = Infinity;
     let maxH = Infinity;
-    let widget = this.currentWidget
-    if (widget) {
-      let limits = sizeLimits(widget.node);
+    if (this._current) {
+      let limits = sizeLimits(this._current.node);
       minW = limits.minWidth;
       minH = limits.minHeight;
       maxW = limits.maxWidth;
@@ -185,8 +206,7 @@ class StackedLayout extends PanelLayout {
    */
   private _update(offsetWidth: number, offsetHeight: number): void {
     // Bail early if there is no current widget.
-    let widget = this.currentWidget;
-    if (!widget) {
+    if (!this._current) {
       return;
     }
 
@@ -208,10 +228,11 @@ class StackedLayout extends PanelLayout {
     let height = offsetHeight - box.verticalSum;
 
     // Update the current widget's layout geometry.
-    StackedLayoutPrivate.setGeometry(widget, left, top, width, height);
+    StackedLayoutPrivate.setGeometry(this._current, left, top, width, height);
   }
 
   private _box: IBoxSizing = null;
+  private _current: Widget = null;
 }
 
 
@@ -224,17 +245,6 @@ namespace StackedLayoutPrivate {
    */
   export
   const IsIE = /Trident/.test(navigator.userAgent);
-
-  /**
-   * The property descriptor for the current widget.
-   */
-  export
-  const currentWidgetProperty = new Property<StackedLayout, Widget>({
-    name: 'currentWidget',
-    value: null,
-    coerce: coerceCurrentWidget,
-    changed: onCurrentWidgetChanged
-  });
 
   /**
    * Prepare a child widget for absolute layout geometry.
@@ -325,26 +335,4 @@ namespace StackedLayoutPrivate {
     name: 'rect',
     create: () => ({ top: NaN, left: NaN, width: NaN, height: NaN }),
   });
-
-  /**
-   * The coerce handler for the `currentWidget` property.
-   */
-  function coerceCurrentWidget(owner: StackedLayout, value: Widget): Widget {
-    return (value && owner.childIndex(value) !== -1) ? value : null;
-  }
-
-  /**
-   * The change handler for the `currentWidget` property.
-   */
-  function onCurrentWidgetChanged(owner: StackedLayout, old: Widget, val: Widget): void {
-    if (old) old.hide();
-    if (val) val.show();
-    if (owner.parent) {
-      if (IsIE) { // prevent flicker on IE
-        sendMessage(owner.parent, Widget.MsgFitRequest);
-      } else {
-        owner.parent.fit();
-      }
-    }
-  }
 }
