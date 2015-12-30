@@ -36,7 +36,7 @@ const CHILD_CLASS = 'p-StackedPanel-child';
 
 
 /**
- * A panel where only one child widget is visible at a time.
+ * A panel where visible children are stacked atop one another.
  *
  * #### Notes
  * This class provides a convenience wrapper around a [[StackedLayout]].
@@ -63,20 +63,6 @@ class StackedPanel extends Panel {
    */
   get widgetRemoved(): ISignal<StackedPanel, Widget> {
     return StackedPanelPrivate.widgetRemovedSignal.bind(this);
-  }
-
-  /**
-   * Get the current panel widget.
-   */
-  get currentWidget(): Widget {
-    return (this.layout as StackedLayout).currentWidget;
-  }
-
-  /**
-   * Set the current panel widget.
-   */
-  set currentWidget(value: Widget) {
-    (this.layout as StackedLayout).currentWidget = value;
   }
 
   /**

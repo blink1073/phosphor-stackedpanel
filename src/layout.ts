@@ -24,51 +24,18 @@ import {
 } from 'phosphor-properties';
 
 import {
-  ResizeMessage, Widget
+  ChildMessage, ResizeMessage, Widget
 } from 'phosphor-widget';
 
 
 /**
- * A layout where only one child widget is visible at a time.
+ * A layout where visible children are stacked atop one another.
+ *
+ * #### Notes
+ * The Z-order of the visible children follows their layout order.
  */
 export
 class StackedLayout extends PanelLayout {
-  /**
-   * Get the current layout widget.
-   */
-  get currentWidget(): Widget {
-    return this._current;
-  }
-
-  /**
-   * Set the current layout widget.
-   */
-  set currentWidget(value: Widget) {
-    value = value || null;
-    if (this._current === value) {
-      return;
-    }
-    if (value && this.childIndex(value) === -1) {
-      console.warn('Widget not contained in layout.');
-      return;
-    }
-    if (this._current) {
-      this._current.hide();
-    }
-    this._current = value;
-    if (this._current) {
-      this._current.show();
-    }
-    if (!this.parent) {
-      return;
-    }
-    if (StackedLayoutPrivate.IsIE) { // prevent flicker on IE
-      sendMessage(this.parent, Widget.MsgFitRequest);
-    } else {
-      this.parent.fit();
-    }
-  }
-
   /**
    * Attach a child widget to the parent's DOM node.
    *
@@ -80,10 +47,10 @@ class StackedLayout extends PanelLayout {
    * This is a reimplementation of the superclass method.
    */
   protected attachChild(index: number, child: Widget): void {
-    child.hide();
     StackedLayoutPrivate.prepareGeometry(child);
     this.parent.node.appendChild(child.node);
     if (this.parent.isAttached) sendMessage(child, Widget.MsgAfterAttach);
+    this.parent.fit();
   }
 
   /**
@@ -98,7 +65,9 @@ class StackedLayout extends PanelLayout {
    * #### Notes
    * This is a reimplementation of the superclass method.
    */
-  protected moveChild(fromIndex: number, toIndex: number, child: Widget): void { /* no-op */ }
+  protected moveChild(fromIndex: number, toIndex: number, child: Widget): void {
+    this.parent.update();
+  }
 
   /**
    * Detach a child widget from the parent's DOM node.
@@ -111,10 +80,11 @@ class StackedLayout extends PanelLayout {
    * This is a reimplementation of the superclass method.
    */
   protected detachChild(index: number, child: Widget): void {
-    if (child === this.currentWidget) this.currentWidget = null;
     if (this.parent.isAttached) sendMessage(child, Widget.MsgBeforeDetach);
     this.parent.node.removeChild(child.node);
     StackedLayoutPrivate.resetGeometry(child);
+    child.node.style.zIndex = '';
+    this.parent.fit();
   }
 
   /**
@@ -131,6 +101,28 @@ class StackedLayout extends PanelLayout {
   protected onAfterAttach(msg: Message): void {
     super.onAfterAttach(msg);
     this.parent.fit();
+  }
+
+  /**
+   * A message handler invoked on a `'child-shown'` message.
+   */
+  protected onChildShown(msg: ChildMessage): void {
+    if (StackedLayoutPrivate.IsIE) { // prevent flicker on IE
+      sendMessage(this.parent, Widget.MsgFitRequest);
+    } else {
+      this.parent.fit();
+    }
+  }
+
+  /**
+   * A message handler invoked on a `'child-hidden'` message.
+   */
+  protected onChildHidden(msg: ChildMessage): void {
+    if (StackedLayoutPrivate.IsIE) { // prevent flicker on IE
+      sendMessage(this.parent, Widget.MsgFitRequest);
+    } else {
+      this.parent.fit();
+    }
   }
 
   /**
@@ -164,18 +156,28 @@ class StackedLayout extends PanelLayout {
    * Fit the layout to the total size required by the child widgets.
    */
   private _fit(): void {
-    // Compute the new size limits.
+    // Setup the initial size limits.
     let minW = 0;
     let minH = 0;
     let maxW = Infinity;
     let maxH = Infinity;
-    if (this._current) {
-      let limits = sizeLimits(this._current.node);
-      minW = limits.minWidth;
-      minH = limits.minHeight;
-      maxW = limits.maxWidth;
-      maxH = limits.maxHeight;
+
+    // Update the computed size limits.
+    for (let i = 0, n = this.childCount(); i < n; ++i) {
+      let child = this.childAt(i);
+      if (child.isHidden) {
+        continue;
+      }
+      let limits = sizeLimits(child.node);
+      minW = Math.max(minW, limits.minWidth);
+      minH = Math.max(minH, limits.minHeight);
+      maxW = Math.min(maxW, limits.maxWidth);
+      maxH = Math.min(maxH, limits.maxHeight);
     }
+
+    // Ensure max limits >= min limits.
+    maxW = Math.max(minW, maxW);
+    maxH = Math.max(minH, maxH);
 
     // Update the box sizing and add it to the size constraints.
     let box = this._box = boxSizing(this.parent.node);
@@ -205,8 +207,8 @@ class StackedLayout extends PanelLayout {
    * The parent offset dimensions should be `-1` if unknown.
    */
   private _update(offsetWidth: number, offsetHeight: number): void {
-    // Bail early if there is no current widget.
-    if (!this._current) {
+    // Bail early if there are no children to layout.
+    if (this.childCount() === 0) {
       return;
     }
 
@@ -227,12 +229,18 @@ class StackedLayout extends PanelLayout {
     let width = offsetWidth - box.horizontalSum;
     let height = offsetHeight - box.verticalSum;
 
-    // Update the current widget's layout geometry.
-    StackedLayoutPrivate.setGeometry(this._current, left, top, width, height);
+    // Update the child stacking order and layout geometry.
+    for (let i = 0, n = this.childCount(); i < n; ++i) {
+      let child = this.childAt(i);
+      if (child.isHidden) {
+        continue;
+      }
+      child.node.style.zIndex = `${i}`;
+      StackedLayoutPrivate.setGeometry(child, left, top, width, height);
+    }
   }
 
   private _box: IBoxSizing = null;
-  private _current: Widget = null;
 }
 
 
