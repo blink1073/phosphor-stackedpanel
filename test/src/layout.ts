@@ -257,6 +257,148 @@ describe('phosphor-stackedpanel', () => {
 
     });
 
+    describe('#onAfterShow()', () => {
+
+      it('should call update on the parent', (done) => {
+        let widget = new LogWidget();
+        let layout = new LogLayout();
+        widget.layout = layout;
+        widget.attach(document.body);
+        widget.hide();
+        widget.show();
+        expect(layout.methods.indexOf('onAfterShow')).to.not.be(-1);
+        requestAnimationFrame(() => {
+          expect(widget.messages.indexOf('update-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
+    describe('#onAfterAttach()', () => {
+
+      it('should call fit on the parent', (done) => {
+        let widget = new LogWidget();
+        let layout = new LogLayout();
+        widget.layout = layout;
+        widget.attach(document.body);
+        expect(layout.methods.indexOf('onAfterAttach')).to.not.be(-1);
+        requestAnimationFrame(() => {
+          expect(widget.messages.indexOf('fit-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
+    describe('#onChildShown()', () => {
+
+      it('should post or send fit message to the parent', (done) => {
+        let widget = new LogWidget();
+        let layout = new LogLayout();
+        widget.layout = layout;
+        layout.addChild(new Widget());
+        layout.addChild(new Widget());
+        widget.attach(document.body);
+        layout.childAt(0).hide();
+        layout.childAt(0).show();
+        expect(layout.methods.indexOf('onChildShown')).to.not.be(-1);
+        requestAnimationFrame(() => {
+          expect(widget.messages.indexOf('fit-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
+    describe('#onChildHidden()', () => {
+
+      it('should post or send fit message to the parent', (done) => {
+        let widget = new LogWidget();
+        let layout = new LogLayout();
+        widget.layout = layout;
+        layout.addChild(new Widget());
+        layout.addChild(new Widget());
+        widget.attach(document.body);
+        layout.childAt(0).hide();
+        expect(layout.methods.indexOf('onChildHidden')).to.not.be(-1);
+        requestAnimationFrame(() => {
+          expect(widget.messages.indexOf('fit-request')).to.not.be(-1);
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
+     describe('#onResize()', () => {
+
+      it('should lay out the children', () => {
+        let widget = new LogWidget();
+        let children = [new Widget(), new Widget()];
+        let layout = new LogLayout();
+        widget.layout = layout;
+        widget.attach(document.body);
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        sendMessage(widget, ResizeMessage.UnknownSize);
+        expect(layout.methods.indexOf('onResize')).to.not.be(-1);
+        expect(layout.childAt(0).node.style.zIndex).to.be('0');
+        expect(layout.childAt(1).node.style.zIndex).to.be('1');
+        widget.dispose();
+      });
+
+    });
+
+    describe('#onUpdateRequest()', () => {
+
+      it('should lay out the children', () => {
+        let widget = new LogWidget();
+        let children = [new Widget(), new Widget()];
+        let layout = new LogLayout();
+        widget.layout = layout;
+        widget.attach(document.body);
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        sendMessage(widget, Widget.MsgUpdateRequest);
+        expect(layout.methods.indexOf('onUpdateRequest')).to.not.be(-1);
+        expect(layout.childAt(0).node.style.zIndex).to.be('0');
+        expect(layout.childAt(1).node.style.zIndex).to.be('1');
+        widget.dispose();
+      });
+
+    });
+
+    describe('#onFitRequest()', () => {
+
+      it('should fit to the size required by the children', (done) => {
+        let widget = new LogWidget();
+        let children = [new Widget(), new Widget()];
+        let layout = new LogLayout();
+        widget.layout = layout;
+        widget.attach(document.body);
+        layout.addChild(children[0]);
+        layout.addChild(children[1]);
+        children[0].node.style.minWidth = '50px';
+        children[0].node.style.maxWidth = '500px';
+        children[1].node.style.minWidth = '100px';
+        children[1].node.style.maxWidth = '400px';
+        expect(widget.node.style.minHeight).to.be('');
+        widget.fit();
+        requestAnimationFrame(() => {
+          expect(layout.methods.indexOf('onFitRequest')).to.not.be(-1);
+          expect(widget.node.style.minWidth).to.be('100px');
+          expect(widget.node.style.maxWidth).to.be('400px');
+          widget.dispose();
+          done();
+        });
+      });
+
+    });
+
   });
 
   // describe('StackedPanel', () => {
