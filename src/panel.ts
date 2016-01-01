@@ -51,6 +51,11 @@ class StackedPanel extends Panel {
   }
 
   /**
+   * The static type of the constructor.
+   */
+  "constructor": typeof StackedPanel;
+
+  /**
    * Construct a new stacked panel.
    */
   constructor() {

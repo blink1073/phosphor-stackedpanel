@@ -37,6 +37,11 @@ import {
 export
 class StackedLayout extends PanelLayout {
   /**
+   * The static type of the constructor.
+   */
+  "constructor": typeof StackedLayout;
+
+  /**
    * Attach a child widget to the parent's DOM node.
    *
    * @param index - The current index of the child in the layout.
