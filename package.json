@@ -43,6 +43,7 @@
     "test:coverage": "karma start test/karma-cov.conf.js",
     "test:firefox": "karma start --browsers=Firefox test/karma.conf.js",
     "test:ie": "karma start --browsers=IE test/karma.conf.js",
+    "test:debug": "karma start --browsers=Chrome --singleRun=false --debug=true test/karma.conf.js",
     "test": "npm run test:firefox"
   },
   "repository": {
