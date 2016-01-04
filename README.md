@@ -97,10 +97,8 @@ Bundle for the Browser
 
 Follow the package install instructions first.
 
-```bash
-npm install --save-dev browserify browserify-css
-browserify myapp.js -o mybundle.js
-```
+Any bundler that understands how to `require()` files with `.js` and `.css`
+extensions can be used with this package.
 
 
 Usage Examples
