@@ -2,7 +2,7 @@
 *.user
 .DS_Store
 docs/api
-example/*.js
+example/bundle.js
 lib
 node_modules
 test/build
